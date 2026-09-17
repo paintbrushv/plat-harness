@@ -10,6 +10,9 @@ Paste [`SPARK_OPERATOR.md`](SPARK_OPERATOR.md) as the system / developer prompt
 on the DGX Spark (or anywhere). Fill the `FACTS` block. Do not invent CoC/IRR.
 
 Host-specific invocation notes: [`HOSTS.md`](HOSTS.md).
+Folder-drop campaign (generic): [`DEAL_ROOM_CAMPAIGN.md`](DEAL_ROOM_CAMPAIGN.md).
+GPU-box bootstrap (clone + rsync from a data host): [`SPARK_BOOTSTRAP.md`](SPARK_BOOTSTRAP.md).
+Product sequence: [`../docs/ROADMAP.md`](../docs/ROADMAP.md).
 
 Live GP overlay paths (ops Standardized, deal rooms, millage sources) stay
 **out of this public tree**. Point env at them on the machine that holds the

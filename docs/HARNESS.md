@@ -37,3 +37,4 @@ No `claude-agent-sdk`, no `anthropic`, no `plat_agent.dispatch.sibling`.
 
 New repo, clean history. Synthetic fixtures only. Engine-in-tree is a stub
 until a second audit of a sanitized Decimal core. See `HISTORY_AUDIT.md`.
+Sequenced path (generic): [`ROADMAP.md`](ROADMAP.md).

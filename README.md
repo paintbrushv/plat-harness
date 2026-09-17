@@ -48,6 +48,10 @@ as the system prompt. Host notes: [`prompts/HOSTS.md`](prompts/HOSTS.md).
 Point env at **your** data on the machine that already holds it. Do not copy
 OM / rent rolls / ops databases onto a GPU node.
 
+Sequenced product path (generic): [`docs/ROADMAP.md`](docs/ROADMAP.md).
+Folder-drop campaign: [`prompts/DEAL_ROOM_CAMPAIGN.md`](prompts/DEAL_ROOM_CAMPAIGN.md).
+GPU workstation bootstrap: [`prompts/SPARK_BOOTSTRAP.md`](prompts/SPARK_BOOTSTRAP.md).
+
 ## Install
 
 ```bash
