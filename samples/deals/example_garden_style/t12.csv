@@ -1,0 +1,27 @@
+# Example garden-style — synthetic T12 (fabricated)
+
+period,account_code,account_name,section,ptd_actual
+2025-06,41000,Gross Potential Rent,revenue,72000.00
+2025-06,52000,Repairs & Maintenance,opex,8000.00
+2025-07,41000,Gross Potential Rent,revenue,72000.00
+2025-07,52000,Repairs & Maintenance,opex,8000.00
+2025-08,41000,Gross Potential Rent,revenue,72000.00
+2025-08,52000,Repairs & Maintenance,opex,8000.00
+2025-09,41000,Gross Potential Rent,revenue,72000.00
+2025-09,52000,Repairs & Maintenance,opex,8000.00
+2025-10,41000,Gross Potential Rent,revenue,72000.00
+2025-10,52000,Repairs & Maintenance,opex,8000.00
+2025-11,41000,Gross Potential Rent,revenue,72000.00
+2025-11,52000,Repairs & Maintenance,opex,8000.00
+2025-12,41000,Gross Potential Rent,revenue,72000.00
+2025-12,52000,Repairs & Maintenance,opex,8000.00
+2026-01,41000,Gross Potential Rent,revenue,72000.00
+2026-01,52000,Repairs & Maintenance,opex,8000.00
+2026-02,41000,Gross Potential Rent,revenue,72000.00
+2026-02,52000,Repairs & Maintenance,opex,8000.00
+2026-03,41000,Gross Potential Rent,revenue,72000.00
+2026-03,52000,Repairs & Maintenance,opex,8000.00
+2026-04,41000,Gross Potential Rent,revenue,72000.00
+2026-04,52000,Repairs & Maintenance,opex,8000.00
+2026-05,41000,Gross Potential Rent,revenue,72000.00
+2026-05,52000,Repairs & Maintenance,opex,8000.00

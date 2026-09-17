@@ -1,0 +1,14 @@
+.venv/
+.deps/
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.coverage
+htmlcov/
+*.db
+.env
+.env.*
+msal_token_cache.json

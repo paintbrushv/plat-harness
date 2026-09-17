@@ -1,0 +1,13 @@
+# Example cashflow-first overlay. Not a recommended hurdle. Not anyone's house number.
+# Copy this file, set coc_hurdle to YOUR Year-1 post-debt ratio, and point
+# PLAT_HARNESS_POLICY at the copy.
+
+extends: ../default.yaml
+thesis: cashflow-first
+# coc_hurdle:   # set your ratio here. The kernel will not invent one.
+notes:
+  - House Year-1 revenue defaults to in-place lease rent, not PMS market rent.
+  - Millage is still a hard gate (MISSING_MILLAGE).
+  - Occupancy still requires occupied, vacant, down, and the denominator.
+  - CONFLICT metrics still do not average.
+  - Comp four-pack missing → rent upside NEEDS_DATA, not a made-up premium.

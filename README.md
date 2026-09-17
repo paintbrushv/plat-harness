@@ -1,0 +1,97 @@
+# plat-harness
+
+Agent-agnostic control plane for multifamily underwriting and asset operations.
+**The model is rented. Certified numbers come from tools.**
+
+```bash
+git clone <this-repo> plat-harness && cd plat-harness
+python3 -m venv .venv && source .venv/bin/activate
+pip install -e ".[dev]"
+
+plat-harness ask --metric noi
+# → CONFLICT_UNRESOLVED (will not average competing NOI formulas)
+
+plat-harness scoreboard --asset example_property
+# → uncertified_empty unless you point env at samples/ops (synthetic data only)
+
+plat-harness underwrite --deal example_garden_style
+# → MISSING_MILLAGE  (mills per $1,000)
+
+plat-harness underwrite --deal example_garden_style --millage-rate 25.31
+# → millage gate passes; CoC/IRR/DSCR/EM/cap are NOT invented
+#    until you import a Decimal engine extra (see engine/README.md)
+```
+
+The synthetic **80-unit** garden-style sample does **not** invent cash-on-cash.
+The certified board is built from **synthetic** fixtures in `samples/` (or from
+data you mount with env vars). This repository does not ship anyone's live
+deal room.
+
+## What this is
+
+| Command | Job |
+|---|---|
+| `plat-harness ask` | NL or `--metric` → tools only. CONFLICT metrics need `--context`. |
+| `plat-harness scoreboard` | Pipeline tile: certified CoC/occupancy or `uncertified_empty`. |
+| `plat-harness underwrite --millage-rate` | Deal path. Millage-less runs refuse. |
+
+Occupancy answers must emit **occupied, vacant, down, and the denominator**.
+Missing millage → `MISSING_MILLAGE`. Missing feed ≠ `$0`. `IRR = CoC * 0.8` is forbidden.
+
+## Install
+
+```bash
+pip install -e ".[dev]"
+pytest
+```
+
+If `python3 -m venv` is unavailable:
+
+```bash
+python3 -m pip install --target .deps 'pyyaml>=6.0' 'pytest>=7.0'
+PYTHONPATH=harness/src:.deps python3 -m pytest
+PYTHONPATH=harness/src:.deps python3 -m plat_harness scoreboard --asset example_property
+```
+
+Point at **your** data (never commit it here):
+
+```bash
+export PLAT_HARNESS_OPS_ROOT=/path/to/your/ops/properties
+export PLAT_HARNESS_DEAL_ROOT=/path/to/your/deals
+export PLAT_HARNESS_BOXSCORE_DB=/path/to/your/ops.db
+export PLAT_HARNESS_ENGINE_ROOT=/path/to/your/decimal/engine
+export PLAT_HARNESS_GLOSSARY=$PWD/docs/glossary.yaml
+```
+
+To try the synthetic ops sample:
+
+```bash
+export PLAT_HARNESS_OPS_ROOT=$PWD/samples/ops
+plat-harness scoreboard --asset example_property
+plat-harness ask --metric physical_occupancy --context ops_actuals --asset example_property
+```
+
+## Policy
+
+Hurdles live in `policies/default.yaml`. The default file is a **generic GP
+template**: `coc_hurdle` is `null` until you set it. Copy
+`policies/examples/cashflow_first.yaml` and fill in **your** Year-1 CoC ratio.
+This kernel does not ship a compiled cash-on-cash percentage or a unit-count box.
+
+## Engine extra
+
+`engine/` in this repo is a **path-dep stub**. Bring a Decimal `run_underwriting`
+compatible with the harness adapter. See [`engine/README.md`](engine/README.md).
+
+## What this package will not do
+
+- Invent IRR / CoC / DSCR / EM / cap
+- Average CONFLICT glossary rows
+- Publish `memo_ready` with blockers
+- Treat MCP `check_deal_feasibility` as the buy-box
+- Ship live OM / T12 / rent rolls / ops databases
+- Depend on `claude-agent-sdk`, `anthropic`, or `plat_agent.dispatch.sibling`
+
+## License
+
+Apache-2.0. See `LICENSE` and `NOTICE`.

@@ -1,0 +1,25 @@
+property_id,period,account_code,account_name,ptd_actual
+example_property,2025-06,52000,Repairs & Maintenance,8000.00
+example_property,2025-06,52100,Plumbing Repairs,100.00
+example_property,2025-07,52000,Repairs & Maintenance,8000.00
+example_property,2025-07,52100,Plumbing Repairs,100.00
+example_property,2025-08,52000,Repairs & Maintenance,8000.00
+example_property,2025-08,52100,Plumbing Repairs,100.00
+example_property,2025-09,52000,Repairs & Maintenance,8000.00
+example_property,2025-09,52100,Plumbing Repairs,100.00
+example_property,2025-10,52000,Repairs & Maintenance,8000.00
+example_property,2025-10,52100,Plumbing Repairs,100.00
+example_property,2025-11,52000,Repairs & Maintenance,8000.00
+example_property,2025-11,52100,Plumbing Repairs,100.00
+example_property,2025-12,52000,Repairs & Maintenance,8000.00
+example_property,2025-12,52100,Plumbing Repairs,100.00
+example_property,2026-01,52000,Repairs & Maintenance,8000.00
+example_property,2026-01,52100,Plumbing Repairs,100.00
+example_property,2026-02,52000,Repairs & Maintenance,8000.00
+example_property,2026-02,52100,Plumbing Repairs,100.00
+example_property,2026-03,52000,Repairs & Maintenance,8000.00
+example_property,2026-03,52100,Plumbing Repairs,100.00
+example_property,2026-04,52000,Repairs & Maintenance,8000.00
+example_property,2026-04,52100,Plumbing Repairs,100.00
+example_property,2026-05,52000,Repairs & Maintenance,8000.00
+example_property,2026-05,52100,Plumbing Repairs,100.00
