@@ -38,6 +38,16 @@ deal room.
 Occupancy answers must emit **occupied, vacant, down, and the denominator**.
 Missing millage → `MISSING_MILLAGE`. Missing feed ≠ `$0`. `IRR = CoC * 0.8` is forbidden.
 
+## Operator prompts (Spark, Cursor, Codex, Hermes)
+
+This is a **CLI**, not a Boxscore-style TUI and not a required IDE plugin.
+Coding agents and a DGX Spark session (FT Qwen or frontier) drive it by
+shelling `plat-harness`. Paste [`prompts/SPARK_OPERATOR.md`](prompts/SPARK_OPERATOR.md)
+as the system prompt. Host notes: [`prompts/HOSTS.md`](prompts/HOSTS.md).
+
+Point env at **your** data on the machine that already holds it. Do not copy
+OM / rent rolls / ops databases onto a GPU node.
+
 ## Install
 
 ```bash
