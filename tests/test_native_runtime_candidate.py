@@ -1,13 +1,26 @@
-"""Synthetic regression coverage for disabled runtime identity policy."""
+"""Synthetic regression coverage for disabled runtime identity policy.
+
+The expected interpreter and pinned runtime file paths are host
+configuration (PLAT_HARNESS_RUNTIME / PLAT_HARNESS_SITE_PACKAGES); tests pin
+them to synthetic values, so no host path appears here and the suite runs on
+any machine.
+"""
 from copy import deepcopy
 import pytest
 from plat_harness.errors import HarnessError
 from plat_harness import native_runtime_candidate as candidate
 
 
+@pytest.fixture(autouse=True)
+def synthetic_host(monkeypatch):
+    """Pin the reviewed interpreter and site-packages root to synthetic values."""
+    monkeypatch.setenv("PLAT_HARNESS_RUNTIME", "/EXPLICIT_FAKE_RUNTIME")
+    monkeypatch.setenv("PLAT_HARNESS_SITE_PACKAGES", "/EXPLICIT_FAKE_SITE_PACKAGES")
+
+
 def observation():
-    return {**deepcopy(candidate.EXACT_IDENTITY),
-            "files": deepcopy(candidate.EXACT_FILES),
+    return {**deepcopy(candidate.expected_identity()),
+            "files": deepcopy(candidate.expected_files()),
             "cuda_initialized": False, "model_loaded": False,
             "forward_compatibility": "NOT_TESTED"}
 
@@ -18,6 +31,17 @@ def test_exact_split_identity_is_diagnostic_not_authority():
                       "approved": False, "native_launch_supported": False,
                       "forward_compatibility": "NOT_TESTED",
                       "payload_coverage": "SELECTED_TORCH_IDENTITY_FILES_NOT_ALL_RUNTIME_LIBRARIES"}
+
+
+def test_identity_pins_configured_interpreter_not_a_host_path():
+    # The expected 'python' is the configured runtime, and pinned files live
+    # under the configured site-packages root — never a compiled host path.
+    identity = candidate.expected_identity()
+    files = candidate.expected_files()
+    assert identity["python"] == "/EXPLICIT_FAKE_RUNTIME"
+    assert all(path.startswith("/EXPLICIT_FAKE_SITE_PACKAGES/") for path in files)
+    assert "/home/" not in identity["python"]
+    assert all("/home/" not in path for path in files)
 
 
 @pytest.mark.parametrize("key,value", [
@@ -62,14 +86,21 @@ def test_file_identity_cannot_be_bypassed(mutation):
         candidate.validate_identity(value)
 
 
+@pytest.mark.parametrize("env_var", ["PLAT_HARNESS_RUNTIME", "PLAT_HARNESS_SITE_PACKAGES"])
+def test_unset_host_config_refuses_fail_closed(monkeypatch, env_var):
+    monkeypatch.delenv(env_var, raising=False)
+    with pytest.raises(HarnessError):
+        observation()
+
+
 def test_actual_readback_required_separately(monkeypatch):
     called = []
     def hasher(path):
         called.append(str(path))
-        return candidate.EXACT_FILES[str(path)]["sha256"], [0] * 5
+        return candidate.expected_files()[str(path)]["sha256"], [0] * 5
     monkeypatch.setattr(candidate, "hash_file", hasher)
     result = candidate.verify_files(observation())
-    assert sorted(called) == sorted(candidate.EXACT_FILES)
+    assert sorted(called) == sorted(candidate.expected_files())
     assert result["files_rehashed"] == len(candidate.EXACT_FILES)
     monkeypatch.setattr(candidate, "hash_file", lambda path: ("0" * 64, []))
     with pytest.raises(HarnessError):

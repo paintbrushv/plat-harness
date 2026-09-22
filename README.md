@@ -111,6 +111,24 @@ compatible with the harness adapter. See [`engine/README.md`](engine/README.md).
 Apache-2.0. See `LICENSE` and `NOTICE`.
 
 
+## Running the test suite
+
+Run the tests under a private umask — the storage and acceptance layers
+**refuse group/world-writable artifact paths by design** (fail-closed mode
+checks), so a default `umask 022`/`002` will surface those refusals as
+failures:
+
+```bash
+umask 077
+pytest -p no:cacheprovider -o addopts= -q tests
+```
+
+All host-specific configuration (`PLAT_HARNESS_PRIVATE_ROOT`,
+`PLAT_HARNESS_NATIVE_LOCK_DIR`, `PLAT_HARNESS_SOVEREIGN_HOST`/`_UID`,
+`PLAT_HARNESS_MODEL_PATH`, `PLAT_HARNESS_RUNTIME`,
+`PLAT_HARNESS_SITE_PACKAGES`) is env-based and fail-closed: unset means
+refuse, never fall back to a default path. See `docs/INSTALL.md`.
+
 ## Status and honest limitations
 
 `plat-harness` is a **v0.1 research release**: a working, model-free control

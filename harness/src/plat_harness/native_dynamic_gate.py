@@ -18,9 +18,12 @@ from typing import Any
 
 from plat_harness import baseline_eval as b
 from plat_harness.errors import HarnessError
-from plat_harness.native_gate import hash_file, open_safe, read_private, gpu_processes
-from plat_harness.native_qwen import MODEL_ID, MODEL_PATH, REVISION, RUNTIME, TEMPLATE_SHA256, loads, refuse
-from plat_harness.native_runtime_candidate import EXACT_FILES, EXACT_IDENTITY
+from plat_harness.native_gate import (hash_file, open_safe, read_private, gpu_processes,
+                                      sovereign_host_envelope)
+from plat_harness.native_qwen import (MODEL_ID, REVISION, TEMPLATE_SHA256, loads, refuse,
+                                      model_path, runtime_python)
+from plat_harness.native_qwen import runtime_python as configured_runtime
+from plat_harness.native_runtime_candidate import expected_files, expected_identity
 
 CANDIDATE_SCOPE = "one_native_bf16_dynamic_inference_run"
 
@@ -52,7 +55,7 @@ PINNED_SMALL_DIGESTS = {
 
 def check_runtime_probe(runtime_python=None):
     """Inspect runtime environment without CUDA initialization or model loading."""
-    exe = runtime_python or RUNTIME
+    exe = runtime_python or configured_runtime()
     cmd = [
         exe, "-B", "-c",
         "import importlib.metadata as m, sys, platform, torch, json\n"
@@ -82,7 +85,7 @@ def check_runtime_probe(runtime_python=None):
     except Exception as exc:
         refuse("NATIVE_RUNTIME", f"Runtime probe execution failed: {exc}")
 
-    for key, expected in EXACT_IDENTITY.items():
+    for key, expected in expected_identity().items():
         actual = data.get(key)
         if actual != expected:
             refuse("NATIVE_RUNTIME", f"Runtime identity mismatch for {key}: expected {expected}, got {actual}")
@@ -95,7 +98,7 @@ def check_runtime_probe(runtime_python=None):
 
 def verify_runtime_files():
     """Verify hash and size of pinned runtime library files."""
-    for path_str, expected in EXACT_FILES.items():
+    for path_str, expected in expected_files().items():
         p = Path(path_str)
         if not p.exists():
             refuse("NATIVE_RUNTIME", f"Required runtime file missing: {path_str}")
@@ -106,9 +109,10 @@ def verify_runtime_files():
 
 def authorize_candidate(authorization: Path, authorization_sha256: str, manifest_path: Path, output_dir: Path):
     """Authorizes the dynamic native candidate behind an exact host approval envelope."""
-    if (platform.node() != "spark-17d5" or platform.system() != "Linux"
-            or platform.machine() != "aarch64" or os.getuid() != 1000):
-        refuse("NATIVE_HOST", "Dynamic candidate inference is pinned to spark-17d5/mdai/aarch64.")
+    expected_host, expected_uid = sovereign_host_envelope()
+    if (platform.node() != expected_host or platform.system() != "Linux"
+            or platform.machine() != "aarch64" or os.getuid() != int(expected_uid)):
+        refuse("NATIVE_HOST", "Dynamic candidate inference is pinned to the configured sovereign host envelope.")
 
     if len(authorization_sha256) != 64 or any(c not in "0123456789abcdef" for c in authorization_sha256):
         refuse("NATIVE_AUTH", "Supply literal reviewed approval SHA256.")
@@ -144,7 +148,9 @@ def authorize_candidate(authorization: Path, authorization_sha256: str, manifest
     if not isinstance(manifest, dict) or not required_manifest_keys.issubset(set(manifest)):
         refuse("NATIVE_MANIFEST", "Missing required candidate manifest fields.")
 
-    if (manifest["model_id"], manifest["revision"], manifest["model_path"], manifest["runtime"]) != (MODEL_ID, REVISION, MODEL_PATH, RUNTIME):
+    model_root = model_path()
+    runtime = runtime_python()
+    if (manifest["model_id"], manifest["revision"], manifest["model_path"], manifest["runtime"]) != (MODEL_ID, REVISION, str(model_root), runtime):
         refuse("NATIVE_MANIFEST", "Pinned candidate identity or runtime mismatch.")
 
     if manifest["limits"] != CANDIDATE_LIMITS or manifest["controls"] != CONTROLS or manifest["synthetic_only"] is not True:
@@ -169,7 +175,7 @@ def authorize_candidate(authorization: Path, authorization_sha256: str, manifest
     if not isinstance(files, dict):
         refuse("NATIVE_MANIFEST", "Manifest files must be a dictionary.")
 
-    base = Path(MODEL_PATH)
+    base = Path(model_root)
     with os.fdopen(open_safe(base / "model.safetensors.index.json"), "rb") as f:
         index_raw = f.read(8 * 1024 * 1024 + 1)
     if len(index_raw) > 8 * 1024 * 1024:

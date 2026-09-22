@@ -11,11 +11,13 @@ import copy
 import hashlib
 import json
 import math
+import os
 import re
 import socket
 import time
 import uuid
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any
 
 from plat_harness.errors import HarnessError
@@ -23,13 +25,36 @@ from plat_harness.models import ModelTurn
 
 MODEL_ID = "Qwen/Qwen3.6-35B-A3B"
 REVISION = "995ad96eacd98c81ed38be0c5b274b04031597b0"
-MODEL_PATH = "/home/mdai/models/Qwen3.6-35B-A3B"
-RUNTIME = "/home/mdai/venvs/qwen36-unsloth/bin/python"
 TEMPLATE_SHA256 = "e84f32a23fdda27689f868aa4a1a5621f41133e51a48d7f3efcbea2839574259"
 MAX_LINE = 131072
 IDENT = re.compile(r"[A-Za-z_][A-Za-z0-9_]{0,127}\Z")
 CALL_ID = re.compile(r"[A-Za-z0-9_-]{1,128}\Z")
-RESERVED = re.compile(r"<\||\|>|</?(?:tool_call|tool_response|function|parameter|think|tools)(?:[=>\s]|$)", re.I)
+RESERVED = re.compile(r"<\|\||\|>|</?(?:tool_call|tool_response|function|parameter|think|tools)(?:[=>\s]|$)", re.I)
+
+
+def model_path() -> Path:
+    """Local model checkpoint path from host configuration at call time.
+
+    PLAT_HARNESS_MODEL_PATH must name the approved local checkpoint directory;
+    refusing when unset or empty is the fail-closed default — no host path is
+    compiled into the source.
+    """
+    raw = os.environ.get("PLAT_HARNESS_MODEL_PATH", "")
+    if not raw:
+        refuse("NATIVE_CONFIG", "PLAT_HARNESS_MODEL_PATH must configure the local model checkpoint directory.")
+    return Path(raw)
+
+
+def runtime_python() -> str:
+    """Reviewed tokenizer interpreter path from host configuration at call time.
+
+    PLAT_HARNESS_RUNTIME must name the exact reviewed interpreter; refusing
+    when unset or empty is the fail-closed default.
+    """
+    raw = os.environ.get("PLAT_HARNESS_RUNTIME", "")
+    if not raw:
+        refuse("NATIVE_CONFIG", "PLAT_HARNESS_RUNTIME must configure the reviewed tokenizer interpreter.")
+    return raw
 
 
 def refuse(code: str, message: str):

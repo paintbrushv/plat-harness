@@ -22,11 +22,10 @@ from plat_harness.errors import HarnessError
 from plat_harness.native_baseline_amendment import cpu_controls
 from plat_harness.native_dynamic_gate import CANDIDATE_SCOPE
 from plat_harness.native_qwen import (
-    MAX_LINE, MODEL_ID, MODEL_PATH, REVISION, RUNTIME,
-    dumps, loads, refuse, render_prompt
+    MAX_LINE, MODEL_ID, REVISION,
+    dumps, loads, model_path, refuse, render_prompt, runtime_python
 )
 from plat_harness.native_qwen_worker import emit, read_request
-from plat_harness.native_runtime_candidate import EXACT_IDENTITY
 
 CPU_MODE = "CPU_FAKE_WORKER_REAL_IPC_NOT_QWEN"
 MAX_GENERATIONS = 44
@@ -67,14 +66,14 @@ def audit_model(model, loading_info, torch):
 def load_cpu_tokenizer():
     """Hash pinned small payloads before a local-only tokenizer import for tests."""
     cpu_controls()
-    if sys.executable != RUNTIME:
+    if sys.executable != runtime_python():
         refuse("DYNAMIC_TOKENIZER_RUNTIME", "Use the exact reviewed tokenizer interpreter.")
     from plat_harness.native_gate import PINNED_SMALL_DIGESTS, hash_file
     for name, expected in PINNED_SMALL_DIGESTS.items():
-        if hash_file(Path(MODEL_PATH) / name)[0] != expected:
+        if hash_file(model_path() / name)[0] != expected:
             refuse("NATIVE_HASH", "Pinned tokenizer/config/template bytes changed.")
     from transformers import AutoTokenizer
-    tokenizer = AutoTokenizer.from_pretrained(MODEL_PATH, local_files_only=True, trust_remote_code=False)
+    tokenizer = AutoTokenizer.from_pretrained(model_path(), local_files_only=True, trust_remote_code=False)
     cpu_controls()
     return tokenizer
 
@@ -137,7 +136,7 @@ def run_native(permit_fd: int):
             or not permit.get("manifest_sha256")):
         refuse("NATIVE_AUTH", "Missing or invalid supervisor-issued candidate permit.")
 
-    if sys.executable != RUNTIME or os.environ.get("CUDA_VISIBLE_DEVICES") != "0":
+    if sys.executable != runtime_python() or os.environ.get("CUDA_VISIBLE_DEVICES") != "0":
         refuse("NATIVE_RUNTIME", "Worker must use reviewed native runtime and explicit CUDA:0.")
 
     for key in ("HF_HUB_OFFLINE", "TRANSFORMERS_OFFLINE"):
@@ -156,7 +155,7 @@ def run_native(permit_fd: int):
         if any(n == "unsloth" or n.startswith("unsloth.") for n in sys.modules):
             refuse("NATIVE_RUNTIME", "Unsloth patches are forbidden.")
 
-        tokenizer = AutoTokenizer.from_pretrained(MODEL_PATH, local_files_only=True, trust_remote_code=False)
+        tokenizer = AutoTokenizer.from_pretrained(model_path(), local_files_only=True, trust_remote_code=False)
 
         manifest = permit["manifest"]
         # Pre-verify token budgets for initial question and all frozen cases
@@ -177,7 +176,7 @@ def run_native(permit_fd: int):
 
         start = time.monotonic()
         model, info = Qwen3_5MoeForConditionalGeneration.from_pretrained(
-            MODEL_PATH,
+            model_path(),
             dtype=torch.bfloat16,
             device_map={"": "cuda:0"},
             low_cpu_mem_usage=True,

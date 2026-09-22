@@ -9,8 +9,10 @@ import platform
 import stat
 import subprocess
 
-from plat_harness.native_qwen import (MODEL_ID, MODEL_PATH, REVISION, RUNTIME,
-                                      TEMPLATE_SHA256, dumps, loads, refuse, schemas)
+from plat_harness.native_qwen import (MODEL_ID, REVISION, TEMPLATE_SHA256,
+                                      dumps, loads, refuse, schemas,
+                                      model_path as configured_model_path,
+                                      runtime_python as configured_runtime)
 
 PINNED_SMALL_DIGESTS = {"config.json": "93a4693fa9d8392fbfccd4b3c9873f4bfdcb14fdede978b123d07d19675efe99",
                         "tokenizer.json": "5f9e4d4901a92b997e463c1f46055088b6cca5ca61a6522d1b9f64c4bb81cb42",
@@ -76,6 +78,22 @@ def gpu_processes():
     return [int(line.strip()) for line in p.stdout.splitlines() if line.strip()]
 
 
+def sovereign_host_envelope() -> tuple[str, str]:
+    """Expected host/uid approval envelope from host configuration.
+
+    PLAT_HARNESS_SOVEREIGN_HOST and PLAT_HARNESS_SOVEREIGN_UID must name the
+    exact approved host and uid; refusing when unset is the fail-closed
+    default. The semantic is unchanged: native inference only authorizes
+    behind an exact host approval envelope — the expected values are simply
+    configured per host instead of compiled into the source.
+    """
+    host = os.environ.get("PLAT_HARNESS_SOVEREIGN_HOST", "")
+    uid = os.environ.get("PLAT_HARNESS_SOVEREIGN_UID", "")
+    if not host or not uid.isdigit():
+        refuse("NATIVE_HOST", "PLAT_HARNESS_SOVEREIGN_HOST/PLAT_HARNESS_SOVEREIGN_UID must configure the approved host envelope.")
+    return host, uid
+
+
 def authorize(authorization: Path, authorization_sha256: str, manifest_path: Path,
               output_dir: Path):
     """Only a host-supplied hash-bound approval can cross the GPU gate.
@@ -84,9 +102,10 @@ def authorize(authorization: Path, authorization_sha256: str, manifest_path: Pat
     human identity. The caller must obtain actual approval before creating it.
     Proposals and automatic agent decisions are explicitly rejected.
     """
-    if (platform.node() != "spark-17d5" or platform.system() != "Linux"
-            or platform.machine() != "aarch64" or os.getuid() != 1000):
-        refuse("NATIVE_HOST", "Native inference is pinned to spark-17d5/mdai/aarch64.")
+    expected_host, expected_uid = sovereign_host_envelope()
+    if (platform.node() != expected_host or platform.system() != "Linux"
+            or platform.machine() != "aarch64" or os.getuid() != int(expected_uid)):
+        refuse("NATIVE_HOST", "Native inference is pinned to the configured sovereign host envelope.")
     if len(authorization_sha256) != 64 or any(c not in "0123456789abcdef" for c in authorization_sha256):
         refuse("NATIVE_AUTH", "Supply the literal reviewed approval SHA256.")
     auth, auth_sha = read_private(authorization, authorization_sha256)
@@ -111,7 +130,9 @@ def authorize(authorization: Path, authorization_sha256: str, manifest_path: Pat
     required_manifest = {"model_id", "revision", "model_path", "runtime", "limits", "controls", "files", "tools", "system_prompt", "questions", "synthetic_only"}
     if not isinstance(manifest, dict) or set(manifest) != required_manifest:
         refuse("NATIVE_MANIFEST", "Unexpected manifest fields.")
-    if (manifest["model_id"], manifest["revision"], manifest["model_path"], manifest["runtime"]) != (MODEL_ID, REVISION, MODEL_PATH, RUNTIME):
+    model_root = configured_model_path()
+    runtime = configured_runtime()
+    if (manifest["model_id"], manifest["revision"], manifest["model_path"], manifest["runtime"]) != (MODEL_ID, REVISION, str(model_root), runtime):
         refuse("NATIVE_MANIFEST", "Pinned identity/runtime mismatch.")
     if (manifest["limits"] != LIMITS or any(type(v) is not int for v in manifest["limits"].values())
             or manifest["controls"] != CONTROLS or manifest["synthetic_only"] is not True):
@@ -135,7 +156,7 @@ def authorize(authorization: Path, authorization_sha256: str, manifest_path: Pat
     files = manifest["files"]
     if not isinstance(files, dict):
         refuse("NATIVE_MANIFEST", "File digests must be a mapping.")
-    base = Path(MODEL_PATH)
+    base = Path(model_root)
     with os.fdopen(open_safe(base / "model.safetensors.index.json"), "rb") as f:
         index_raw = f.read(8 * 1024 * 1024 + 1)
     if len(index_raw) > 8 * 1024 * 1024:
@@ -167,7 +188,7 @@ def authorize(authorization: Path, authorization_sha256: str, manifest_path: Pat
             if len(lines) < 2 or lines[0] != REVISION or lines[1] != expected:
                 refuse("NATIVE_HASH", "Shard digest not backed by pinned cached LFS metadata.")
     # Installed runtime is inspected without importing/initializing CUDA.
-    probe = subprocess.run([RUNTIME, "-B", "-c", "import importlib.metadata as m,sys; print(sys.version_info[:2]); print(m.version('transformers')); print(m.version('torch'))"],
+    probe = subprocess.run([runtime, "-B", "-c", "import importlib.metadata as m,sys; print(sys.version_info[:2]); print(m.version('transformers')); print(m.version('torch'))"],
                            env={**os.environ, "CUDA_VISIBLE_DEVICES": "", "HF_HUB_OFFLINE": "1", "TRANSFORMERS_OFFLINE": "1"},
                            capture_output=True, text=True, timeout=30, check=True)
     if probe.stdout.splitlines() != ["(3, 13)", "5.5.0", "2.11.0+cu130"]:

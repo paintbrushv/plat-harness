@@ -271,7 +271,14 @@ def test_citation_multiplicity_survives_canonical_ipc_key_order():
 
 
 def registry_file(tmp_path, monkeypatch, registry, name='registry'):
-    target = tmp_path / name
+    # The pinned registry read goes through the adapter's fail-closed private
+    # path gate: the file must live below a configured private root.
+    tmp_path.chmod(0o700)
+    root = tmp_path / 'private'
+    if not root.exists():
+        root.mkdir(mode=0o700)
+    monkeypatch.setenv('PLAT_HARNESS_PRIVATE_ROOT', str(root))
+    target = root / name
     data = encode(registry)
     fd = os.open(target, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
     with os.fdopen(fd,'wb') as stream: stream.write(data)
@@ -921,6 +928,7 @@ def test_same_inode_with_conflicting_declared_pin_refuses_both_actual_paths(tmp_
     m,kw=setup(tmp_path,[entry(),second],{EID:None,second['entry_id']:None})
     root=tmp_path/'sources'; inner=root/'inner'; inner.mkdir(mode=0o700)
     (inner/'original').write_bytes(HEADER+KNOWN)
+    (inner/'original').chmod(0o600)
     # Different safe root/relative handles open the SAME nlink-one original.
     kw['source_paths'][EID]=a.SourcePath(str(root),('inner','original'))
     kw['source_paths'][second['entry_id']]=a.SourcePath(str(inner),('original',))

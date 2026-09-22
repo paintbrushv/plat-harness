@@ -389,7 +389,7 @@ host account/service for mutually untrusted processes. Hashes are not signatures
 Evidence directories resolve beneath the parent campaign root. Every runner
 invocation retains `command.json`, `pytest.log`, `results.xml`, `test_ids.json`
 and `result.json` with actual controls and exits. All tests use fresh private
-basetemps under the approved uplift root, offline CPU mode and disabled plugin
+basetemps under the configured private root, offline CPU mode and disabled plugin
 autoload. Positive filesystem tests use actual safe ancestor checks, not mocked
 acceptance paths. Ownership mutation is explicitly negative fstat fault injection.
 

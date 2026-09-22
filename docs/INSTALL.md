@@ -64,6 +64,16 @@ pip install "plat-harness[sovereign]"   # owner-reviewed native runtime pins (GP
 |---|---|
 | `PLAT_HARNESS_GLOSSARY` | Path to `glossary.yaml`. A fresh install without the repo must set this; the error message says so. |
 | `PLAT_HARNESS_ENGINE_ROOT` | Root of the underwriting engine checkout (the `engine` extra is documentation, not a vendored dependency). |
+| `PLAT_HARNESS_OPS_ROOT` / `PLAT_HARNESS_DEAL_ROOT` / `PLAT_HARNESS_BOXSCORE_DB` | Roots of your own private ops/deal data and database (never shipped). |
+| `PLAT_HARNESS_PRIVATE_ROOT` | Private data root for Slice B artifacts; required by the adapter's fail-closed path gate. |
+| `PLAT_HARNESS_SOVEREIGN_HOST` / `PLAT_HARNESS_SOVEREIGN_UID` | Approved host/uid envelope for native inference authorization; unset means refuse. |
+| `PLAT_HARNESS_NATIVE_LOCK_DIR` | Approved 0700 lock directory for the resident-model global lock; unset means refuse. |
+| `PLAT_HARNESS_MODEL_PATH` / `PLAT_HARNESS_RUNTIME` | Local model checkpoint directory and reviewed tokenizer interpreter; unset means refuse. |
+| `PLAT_HARNESS_SITE_PACKAGES` | Site-packages root of the pinned runtime identity files; unset means refuse. |
+
+The fail-closed rule for all of these is identical: **no host path,
+hostname or uid is compiled into the source; an unset or empty value is a
+typed refusal, never a guessed default.**
 
 ## Building release artifacts
 

@@ -38,14 +38,19 @@ def approval_fixture(tmp_path, monkeypatch):
     (base/'model.safetensors.index.json').write_text(json.dumps({'weight_map':{f'fake_tensor_{i}':s for i,s in enumerate(shards)}}))
     for path in [*base.glob('*.json'),base/'chat_template.jinja',code/'native_gate.py']:
         files[str(path)]=hashlib.sha256(path.read_bytes()).hexdigest()
-    monkeypatch.setattr(gate,'MODEL_PATH',str(base))
-    monkeypatch.setattr(gate,'RUNTIME','/EXPLICIT_FAKE_RUNTIME')
+    # Model path / runtime are host configuration, pinned via env.
+    monkeypatch.setenv('PLAT_HARNESS_MODEL_PATH',str(base))
+    monkeypatch.setenv('PLAT_HARNESS_RUNTIME','/EXPLICIT_FAKE_RUNTIME')
     monkeypatch.setattr(gate,'__file__',str(code/'native_gate.py'))
     monkeypatch.setattr(gate,'PINNED_SMALL_DIGESTS',{name:files[str(base/name)] for name in gate.PINNED_SMALL_DIGESTS})
-    monkeypatch.setattr(gate.platform,'node',lambda:'spark-17d5')
+    # The sovereign host envelope is host configuration: tests pin it via env,
+    # not by compiling a hostname into the source.
+    monkeypatch.setenv('PLAT_HARNESS_SOVEREIGN_HOST','explicit-offline-test-host')
+    monkeypatch.setattr(gate.platform,'node',lambda:'explicit-offline-test-host')
     monkeypatch.setattr(gate.platform,'system',lambda:'Linux')
     monkeypatch.setattr(gate.platform,'machine',lambda:'aarch64')
     monkeypatch.setattr(gate.os,'getuid',lambda:1000)
+    monkeypatch.setenv('PLAT_HARNESS_SOVEREIGN_UID','1000')
     monkeypatch.setattr(gate,'gpu_processes',lambda:[])
     monkeypatch.setattr(gate.subprocess,'run',lambda *a,**k:SimpleNamespace(stdout='(3, 13)\n5.5.0\n2.11.0+cu130\n'))
     for key,value in gate.CONTROLS.items():

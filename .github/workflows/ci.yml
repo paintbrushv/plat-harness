@@ -28,4 +28,7 @@ jobs:
           TRANSFORMERS_OFFLINE: "1"
           CUDA_VISIBLE_DEVICES: ""
         run: |
+          # The store/acceptance layers refuse group/world-writable artifact
+          # paths by design (fail-closed mode gates); run under a private umask.
+          umask 0077
           pytest -p no:cacheprovider -o addopts= -q tests

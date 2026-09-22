@@ -16,6 +16,22 @@ from test_ingest_source_resolver import (
 RUN = 'run_' + '1' * 32
 
 
+@pytest.fixture(autouse=True)
+def private_root(tmp_path, monkeypatch):
+    """Point PLAT_HARNESS_PRIVATE_ROOT at this test's private tmp area.
+
+    Pinned-reference reads go through the adapter's fail-closed path gate;
+    every test runs against a fresh 0700 root, never a builtin host directory.
+    """
+    tmp_path.chmod(0o700)
+    root = tmp_path / 'private'
+    if not root.exists():
+        root.mkdir(mode=0o700)
+    monkeypatch.setenv('PLAT_HARNESS_PRIVATE_ROOT', str(root))
+    return root
+
+
+
 def api():
     assert importlib.util.find_spec('plat_harness.ingest.store') is not None
     from plat_harness.ingest import store
@@ -770,7 +786,14 @@ def timing_authority(tmp_path, monkeypatch, s, env, registry, mutation):
     else:
         original = (json.dumps(registry, sort_keys=True).encode()
                     if mutation == 'registry_bytes' else RAW)
-        path = tmp_path / ('registry.json' if mutation == 'registry_bytes' else 'original.csv')
+        # The pinned registry read goes through the fail-closed private path
+        # gate: it must live below the configured private root, but NOT inside
+        # the store root (whose exact contents these tests assert). The gate
+        # accepts any subtree below the root, so a sibling directory works.
+        monkeypatch.setenv('PLAT_HARNESS_PRIVATE_ROOT', str(tmp_path))
+        gate_root = tmp_path / 'gate'
+        gate_root.mkdir(mode=0o700, exist_ok=True)
+        path = gate_root / ('registry.json' if mutation == 'registry_bytes' else 'original.csv')
         fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
         with os.fdopen(fd, 'wb') as stream:
             stream.write(original)

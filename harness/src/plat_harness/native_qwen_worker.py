@@ -12,8 +12,8 @@ from pathlib import Path
 import sys
 import time
 
-from plat_harness.native_qwen import (MAX_LINE, MODEL_ID, MODEL_PATH, REVISION,
-                                      RUNTIME, dumps, loads, refuse, render_prompt)
+from plat_harness.native_qwen import (MAX_LINE, MODEL_ID, REVISION,
+                                      dumps, loads, model_path, refuse, render_prompt, runtime_python)
 
 
 def emit(payload):
@@ -79,7 +79,7 @@ def run(permit_fd):
             or permit.get("scope") != "one_native_bf16_synthetic_inference_run"
             or not permit.get("authorization_sha256") or not permit.get("manifest_sha256")):
         refuse("NATIVE_AUTH", "Missing supervisor-issued inference permit.")
-    if sys.executable != RUNTIME or os.environ.get("CUDA_VISIBLE_DEVICES") != "0":
+    if sys.executable != runtime_python() or os.environ.get("CUDA_VISIBLE_DEVICES") != "0":
         refuse("NATIVE_RUNTIME", "Worker must use reviewed native runtime and explicit CUDA:0.")
     for key in ("HF_HUB_OFFLINE", "TRANSFORMERS_OFFLINE"):
         if os.environ.get(key) != "1":
@@ -94,7 +94,7 @@ def run(permit_fd):
         from transformers import AutoTokenizer, Qwen3_5MoeForConditionalGeneration
         if any(n == "unsloth" or n.startswith("unsloth.") for n in sys.modules):
             refuse("NATIVE_RUNTIME", "Unsloth patches are forbidden.")
-        tokenizer = AutoTokenizer.from_pretrained(MODEL_PATH, local_files_only=True, trust_remote_code=False)
+        tokenizer = AutoTokenizer.from_pretrained(model_path(), local_files_only=True, trust_remote_code=False)
         # Full schemas and frozen initial prompts must fit BEFORE weight loading.
         manifest = permit["manifest"]
         prompt_counts = []
@@ -104,7 +104,7 @@ def run(permit_fd):
             prompt_counts.append(len(p.input_ids))
         start = time.monotonic()
         model, info = Qwen3_5MoeForConditionalGeneration.from_pretrained(
-            MODEL_PATH, dtype=torch.bfloat16, device_map={"": "cuda:0"},
+            model_path(), dtype=torch.bfloat16, device_map={"": "cuda:0"},
             low_cpu_mem_usage=True, local_files_only=True, trust_remote_code=False,
             attn_implementation="sdpa", output_loading_info=True)
         audit = audit_model(model, info, torch)

@@ -1,18 +1,16 @@
-"""Disabled exact runtime-identity diagnostic, NOT a GPU compatibility gate.
+"""Sanitized host-portable runtime identity pins for the disabled candidate gate.
 
-The installed wheel uses distribution version 2.11.0 and build version
-2.11.0+cu130. Compare both fields independently, never strip a local suffix.
-The active native_gate remains unchanged. This policy neither issues permits
-nor attests all shared libraries, GB10 kernels, Qwen forwards or provenance of
-an upstream download. The selected installed files are pinned for review.
+EXACT_IDENTITY pins version facts only; the ``python`` key is configured per
+host via PLAT_HARNESS_RUNTIME (the reviewed interpreter), and pinned runtime
+files are addressed relative to the configured site-packages root
+(PLAT_HARNESS_SITE_PACKAGES). No host path is compiled into the source.
 """
 from pathlib import Path
 
 from plat_harness.native_gate import hash_file
-from plat_harness.native_qwen import refuse
+from plat_harness.native_qwen import refuse, runtime_python
 
 EXACT_IDENTITY = {
-    "python": "/home/mdai/venvs/qwen36-unsloth/bin/python",
     "python_version": [3, 13, 14],
     "machine": "aarch64",
     "distribution_version": "2.11.0",
@@ -22,36 +20,66 @@ EXACT_IDENTITY = {
     "transformers_version": "5.5.0",
     "tokenizers_version": "0.22.2",
 }
-_ROOT = "/home/mdai/venvs/qwen36-unsloth/lib/python3.13/site-packages/"
+
+# Pinned selected torch identity files, relative to the configured
+# site-packages root. Keys are package-relative so they stay host-portable.
 EXACT_FILES = {
-    _ROOT + "torch/version.py": {"sha256": "323d35171ef1184f1d7db3bbd1f3d3e227e0e826be8fd52200778346e17c873f", "bytes": 317},
-    _ROOT + "torch/__init__.py": {"sha256": "0387d8b811b289287479c8bfdf4e1dac3a71b246f938d82da1331cf2dc8bf001", "bytes": 107845},
-    _ROOT + "torch/_C.cpython-313-aarch64-linux-gnu.so": {"sha256": "8fcd72c89a7f8ceb3fb106829dca55295928a904eded268d953bf0fa26088e31", "bytes": 263057},
-    _ROOT + "torch-2.11.0.dist-info/METADATA": {"sha256": "d65e0ab5a65ced0dce799a2f6f32bff57b3d3e9d050069f607ef71eb24dd9976", "bytes": 29846},
-    _ROOT + "torch-2.11.0.dist-info/WHEEL": {"sha256": "100308e6fc03e14b816e3d7fd56299655cac945f17c10560dcc5b87ccf7efddd", "bytes": 114},
-    _ROOT + "torch-2.11.0.dist-info/RECORD": {"sha256": "60ba042a9b75fff14bb52bdf97712e225565b7a2b64f29b1c312dc277786aae1", "bytes": 1279065},
+    "torch/version.py": {"sha256": "323d35171ef1184f1d7db3bbd1f3d3e227e0e826be8fd52200778346e17c873f", "bytes": 317},
+    "torch/__init__.py": {"sha256": "0387d8b811b289287479c8bfdf4e1dac3a71b246f938d82da1331cf2dc8bf001", "bytes": 107845},
+    "torch/_C.cpython-313-aarch64-linux-gnu.so": {"sha256": "8fcd72c89a7f8ceb3fb106829dca55295928a904eded268d953bf0fa26088e31", "bytes": 263057},
+    "torch-2.11.0.dist-info/METADATA": {"sha256": "d65e0ab5a65ced0dce799a2f6f32bff57b3d3e9d050069f607ef71eb24dd9976", "bytes": 29846},
+    "torch-2.11.0.dist-info/WHEEL": {"sha256": "100308e6fc03e14b816e3d7fd56299655cac945f17c10560dcc5b87ccf7efddd", "bytes": 114},
+    "torch-2.11.0.dist-info/RECORD": {"sha256": "60ba042a9b75fff14bb52bdf97712e225565b7a2b64f29b1c312dc277786aae1", "bytes": 1279065},
 }
+
+
+def site_packages() -> Path:
+    """Configured site-packages root for the pinned runtime files.
+
+    PLAT_HARNESS_SITE_PACKAGES must name the reviewed interpreter's
+    site-packages directory; refusing when unset or empty is the fail-closed
+    default — no host path is compiled into the source.
+    """
+    import os
+    raw = os.environ.get("PLAT_HARNESS_SITE_PACKAGES", "")
+    if not raw:
+        refuse("NATIVE_RUNTIME_CANDIDATE", "PLAT_HARNESS_SITE_PACKAGES must configure the pinned runtime site-packages root.")
+    return Path(raw)
+
+
+def expected_identity() -> dict:
+    """Full expected identity including the configured reviewed interpreter."""
+    return {**EXACT_IDENTITY, "python": runtime_python()}
+
+
+def expected_files() -> dict:
+    """Pinned file map resolved against the configured site-packages root."""
+    root = site_packages()
+    return {str(root / name): spec for name, spec in EXACT_FILES.items()}
 
 
 def validate_identity(observation):
     """Validate an observation only. Actual byte readback is verify_files()."""
     if not isinstance(observation, dict):
         refuse("NATIVE_RUNTIME_CANDIDATE", "Expected a runtime observation.")
-    for key, expected in EXACT_IDENTITY.items():
+    expected = expected_identity()
+    for key, value in expected.items():
         actual = observation.get(key)
-        if type(actual) is not type(expected) or actual != expected:
+        if type(actual) is not type(value) or actual != value:
             refuse("NATIVE_RUNTIME_CANDIDATE", f"Exact runtime identity mismatch: {key}.")
     if (observation.get("cuda_initialized") is not False
             or observation.get("model_loaded") is not False
             or observation.get("forward_compatibility") != "NOT_TESTED"):
         refuse("NATIVE_RUNTIME_CANDIDATE", "CPU observation cannot assert model compatibility.")
     files = observation.get("files")
-    if not isinstance(files, dict) or set(files) != set(EXACT_FILES):
+    if not isinstance(files, dict):
         refuse("NATIVE_RUNTIME_CANDIDATE", "Exact identity file set required.")
-    for path, expected in EXACT_FILES.items():
-        item = files[path]
+    if set(files) != set(expected_files()):
+        refuse("NATIVE_RUNTIME_CANDIDATE", "Exact identity file set required.")
+    for path, spec in expected_files().items():
+        item = files.get(path)
         if (not isinstance(item, dict) or set(item) != {"sha256", "bytes"}
-                or type(item["bytes"]) is not int or item != expected):
+                or type(item["bytes"]) is not int or item != spec):
             refuse("NATIVE_RUNTIME_CANDIDATE", "Pinned runtime identity file mismatch.")
     return {"status": "EXACT_OBSERVED_IDENTITY", "enabled": False,
             "approved": False, "native_launch_supported": False,
@@ -62,9 +90,9 @@ def validate_identity(observation):
 def verify_files(observation):
     """Rehash exact selected files with existing no-follow/race-safe reader."""
     result = validate_identity(observation)
-    for name, expected in EXACT_FILES.items():
-        digest, _ = hash_file(Path(name))
-        if digest != expected["sha256"]:
+    for path, spec in expected_files().items():
+        digest, _ = hash_file(Path(path))
+        if digest != spec["sha256"]:
             refuse("NATIVE_RUNTIME_CANDIDATE", "Runtime identity changed after observation.")
     return {**result, "files_rehashed": len(EXACT_FILES)}
 

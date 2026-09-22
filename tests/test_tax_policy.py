@@ -81,12 +81,12 @@ def approved_policy(**extra):
         'source': 'Synthetic Appraisal District',
         'source_locator': 'synthetic-notice-of-appraised-value.pdf#p1',
         'requires_competent_human_review': True,
-        'review': {'reviewed': True, 'actor_id': 'mdai', 'reviewed_at': '2026-09-21T00:00:00+00:00'},
+        'review': {'reviewed': True, 'actor_id': 'actor-1', 'reviewed_at': '2026-09-21T00:00:00+00:00'},
         **extra,
     }
 
 
-def approval_for(policy, actor_id='mdai', approval_id='appr_synthetic_001'):
+def approval_for(policy, actor_id='actor-1', approval_id='appr_synthetic_001'):
     payload = {k: v for k, v in policy.items() if k != 'approval'}
     return {'approval': {
         'approval_id': approval_id,
@@ -346,7 +346,7 @@ def test_approved_override_binds_with_host_registry_record():
     payload = {k: v for k, v in policy.items() if k != 'override_approval'}
     approval = {
         'approval_id': 'appr_synthetic_001',
-        'actor_id': 'mdai',
+        'actor_id': 'actor-1',
         'actor_type': 'human',
         'approved_at': '2026-09-21T00:00:00+00:00',
         'reason': 'synthetic override approval',
@@ -355,7 +355,7 @@ def test_approved_override_binds_with_host_registry_record():
                                          separators=(',', ':')).encode()).hexdigest(),
     }
     registry = {'appr_synthetic_001': {
-        'actor_id': 'mdai',
+        'actor_id': 'actor-1',
         'payload_sha256': approval['payload_sha256'],
         'approval_sha256': hashlib.sha256(json.dumps(approval, sort_keys=True,
                                           separators=(',', ':')).encode()).hexdigest(),

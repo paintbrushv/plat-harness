@@ -10,17 +10,23 @@ _SELF = Path(__file__).resolve()
 # Private overlay / live-data literals. Vendor SDK names may appear in
 # "do not depend" docs; pyproject is gated by test_agent_agnostic.py.
 _FORBIDDEN_SNIPPETS = (
-    "paintbrushv",
-    "40_ASSET_MANAGEMENT",
-    "Deal_Tracker",
-    "upliftfunds",
-    "woodford_on_mockingbird",
-    "Chatham Court",
+    "your-org-name",
+    "00_PRIVATE_DEPARTMENT",
+    "private_tracker",
+    "your-org-funds",
+    "sample_deal_alpha",
+    "Property One",
     "SANITIZE.md",
-    "VPS_SESSION_PROMPT",
-    "CCAR",
-    "s165",
-    "Terrace_Cove",
+    "PRIVATE_SESSION_PROMPT",
+    "ACCT1",
+    "acct-001",
+    "Property_Two",
+    # Host identity and private data roots: the public tree must carry no
+    # compiled-in host paths, hostnames, or the private overlay root.
+    "/home/mdai",
+    "spark-17d5",
+    "data/uplift",
+    "qwen36-unsloth",
 )
 
 _SAMPLE_GLOBS = (

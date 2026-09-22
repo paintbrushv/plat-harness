@@ -209,8 +209,8 @@ class TestValidationContract:
         # no actual parcel/account identifiers, private paths or bill files.
         blob = json.dumps(trs.load_regime_registry())
         for canary in (
-            "/home/mdai/data",
-            "/home/mdai/plat",
+            "/private/data",
+            "/private/plat",
             "parcel_number",
             "parcel_id",
             "account_number",
@@ -255,5 +255,5 @@ class TestSpecDocument:
 
     def test_doc_keeps_deal_specific_material_private(self):
         text = DOC_PATH.read_text()
-        assert "/home/mdai/data/uplift/deals" not in text
+        assert "/private/deals" not in text
         assert "no deal-specific parcels, bills, policies or legal review" in text

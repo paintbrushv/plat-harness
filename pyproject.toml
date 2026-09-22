@@ -36,7 +36,7 @@ engine = []
 # Sovereign extra: the owner-reviewed private native runtime pins. These GPU
 # frameworks are optional and only imported inside explicitly authorized
 # sovereign workflows; a core install never pays for them. Pins match the
-# reviewed runtime venv (qwen36-unsloth) exactly.
+# reviewed private runtime venv exactly.
 sovereign = [
     "torch==2.11.0",
     "transformers==5.5.0",

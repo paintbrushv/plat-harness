@@ -37,7 +37,7 @@ def test_exact_native_call_and_host_id():
     XML.replace('physical_occupancy', '"physical_occupancy"'),
     XML.replace('physical_occupancy', 'physical_occupancy '),
     XML.replace('ops_actuals', 'NaN'), XML.replace('get_certified_metric', 'shell'),
-    XML.replace('example_property', '/home/mdai/private'),
+    XML.replace('example_property', '/private/injected'),
     XML.replace('<parameter=context>\nops_actuals\n</parameter>', ''),
     XML.replace('</function>', '<parameter=context>\nops_actuals\n</parameter>\n</function>'),
     XML.replace('context>', 'rank>'), XML + '\n' + XML,

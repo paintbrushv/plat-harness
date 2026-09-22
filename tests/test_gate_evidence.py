@@ -12,6 +12,18 @@ from plat_harness.errors import HarnessError
 from plat_harness.gate_evidence import compare, render_markdown
 
 
+@pytest.fixture(autouse=True)
+def private_root(tmp_path, monkeypatch):
+    """Point PLAT_HARNESS_PRIVATE_ROOT at this test's private tmp area.
+
+    The pinned-reference reads go through the adapter's fail-closed path
+    gate, which is host configuration: each test uses a fresh 0700 root.
+    """
+    tmp_path.chmod(0o700)
+    monkeypatch.setenv('PLAT_HARNESS_PRIVATE_ROOT', str(tmp_path))
+    return tmp_path
+
+
 def dump(path, value):
     path.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
     raw=json.dumps(value).encode()

@@ -28,8 +28,8 @@ from plat_harness.errors import HarnessError
 from plat_harness.native_dynamic import CPU_MODE, MAX_GENERATIONS, DynamicProtocol
 from plat_harness.native_dynamic_gate import CANDIDATE_LIMITS, CANDIDATE_SCOPE, CONTROLS, authorize_candidate
 from plat_harness.native_gate import gpu_processes, open_safe
-from plat_harness.native_qwen import MAX_LINE, MODEL_ID, REVISION, RUNTIME, dumps, loads, refuse, validate_response
-from plat_harness.native_supervisor import Store, cleanup, memory_check, snapshot
+from plat_harness.native_qwen import MAX_LINE, MODEL_ID, REVISION, dumps, loads, refuse, runtime_python, validate_response
+from plat_harness.native_supervisor import Store, cleanup, memory_check, native_lock_path, snapshot
 from plat_harness.native_baseline_amendment import cpu_controls
 
 
@@ -109,7 +109,7 @@ def supervise(store: Store, *, permit=None, fixture_worker=None, cases=None,
             store.write("permit.json", permit)
             permit_fd = os.open("permit.json", os.O_RDONLY | os.O_NOFOLLOW, dir_fd=store.fd)
             pass_fds = (permit_fd,)
-            command = [RUNTIME, "-B", "-m", "plat_harness.native_dynamic_worker", "--permit-fd", str(permit_fd)]
+            command = [runtime_python(), "-B", "-m", "plat_harness.native_dynamic_worker", "--permit-fd", str(permit_fd)]
 
         process = subprocess.Popen(
             command, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
@@ -375,7 +375,7 @@ def main(argv=None):
     supervision_entered = False
     started = time.monotonic()
     try:
-        lock_path = Path("/home/mdai/data/uplift/campaign/next_stage/.native-qwen.lock")
+        lock_path = native_lock_path()
         lock_parent = open_safe(lock_path.parent, directory=True)
         try:
             lock = os.open(lock_path.name, os.O_RDWR | os.O_CREAT | os.O_NOFOLLOW, 0o600, dir_fd=lock_parent)

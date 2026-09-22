@@ -369,11 +369,17 @@ def test_unimplemented_host_adapter_version_never_verifies_semantics():
 
 
 def test_production_request_uses_existing_host_registry_and_exact_json(monkeypatch, tmp_path):
+    # The pinned host registry read goes through the adapter's fail-closed
+    # private path gate: it must live below a configured private root.
     from plat_harness.adapters import review_bridge
+    tmp_path.chmod(0o700)
+    root = tmp_path / 'private'
+    root.mkdir(mode=0o700)
+    monkeypatch.setenv('PLAT_HARNESS_PRIVATE_ROOT', str(root))
     env, registry = unknown(), {}
     d = approve(decision(env), registry)
     raw = json.dumps(registry, sort_keys=True).encode()
-    path = tmp_path / 'registry.json'
+    path = root / 'registry.json'
     path.write_bytes(raw)
     path.chmod(0o600)
     monkeypatch.setenv('PLAT_HARNESS_CONTRACT_REGISTRY_PATH', str(path))

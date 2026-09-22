@@ -29,7 +29,8 @@ allowed — the core product is model-free and offline by default.
 2. Small slices: strict TDD (failing test → minimal fix), like the codebase
    itself was built. See the tests/ directory for the house style.
 3. Every PR must keep the full suite green. A red test is a bug report, not
-   a to-do.
+   a to-do. Run under `umask 077` — the mode gates refuse group-writable
+   test artifact paths by design.
 4. Never weaken a gate to make a test pass. If a gate is wrong, change the
    gate in the same PR with its own red/green evidence.
 

@@ -20,8 +20,9 @@ import sys
 from plat_harness import baseline_eval as baseline
 from plat_harness.errors import HarnessError
 from plat_harness.native_gate import CONTROLS, LIMITS, PINNED_SMALL_DIGESTS, hash_file, open_safe
-from plat_harness.native_qwen import (MODEL_ID, MODEL_PATH, REVISION, RUNTIME,
-    TEMPLATE_SHA256, arguments, dumps, loads, normalize, refuse, render_prompt, schemas)
+from plat_harness.native_qwen import (MODEL_ID, REVISION, TEMPLATE_SHA256,
+    arguments, dumps, loads, model_path, normalize, refuse, render_prompt,
+    runtime_python, schemas)
 from plat_harness.native_supervisor import Store
 
 STATUS = "DISABLED_UNAPPROVED_CPU_AMENDMENT"
@@ -225,7 +226,7 @@ class ReplayCursor:
 
 
 def checkpoint_identity():
-    base = Path(MODEL_PATH)
+    base = model_path()
     names = ["config.json", "generation_config.json", "tokenizer.json", "tokenizer_config.json",
              "chat_template.jinja", "model.safetensors.index.json"]
     files = {str(base / n): hash_file(base / n)[0] for n in names}
@@ -265,13 +266,14 @@ def frozen_inputs(trace_dir, authority):
     files = {str(p): hash_file(p)[0] for p in sorted(paths)}
     model_files, shards = checkpoint_identity()
     files.update(model_files)
-    runtime = Path(RUNTIME).resolve(strict=True)
+    configured_runtime = runtime_python()
+    runtime = Path(configured_runtime).resolve(strict=True)
     files[str(runtime)] = hash_file(runtime)[0]
     return {"protocol": protocol, "files": files, "checkpoint_shards": shards,
             "trace_dir": str(trace_dir), "authority": str(authority),
             "bindings": [asdict(b) for b in baseline.BINDINGS],
-            "model_id": MODEL_ID, "revision": REVISION, "model_path": MODEL_PATH,
-            "runtime": RUNTIME, "runtime_resolved": str(runtime),
+            "model_id": MODEL_ID, "revision": REVISION, "model_path": str(base),
+            "runtime": configured_runtime, "runtime_resolved": str(runtime),
             "runtime_versions": {n: importlib.metadata.version(n) for n in ("transformers", "tokenizers", "torch")},
             "active_limits_unchanged": copy.deepcopy(LIMITS), "active_max_turns_per_question": 2,
             "controls": copy.deepcopy(CONTROLS),
@@ -336,11 +338,11 @@ def tokenizer_boundaries(tokenizer, stage):
 
 def prepare(trace_dir, authority, output):
     cpu_controls()
-    require(sys.executable == RUNTIME, "Use pinned tokenizer runtime.", "AMENDMENT_RUNTIME")
+    require(sys.executable == runtime_python(), "Use pinned tokenizer runtime.", "AMENDMENT_RUNTIME")
     frozen = frozen_inputs(trace_dir, authority)
     # Lazy tokenizer-only import. Never import a model class or call a loader.
     from transformers import AutoTokenizer
-    tokenizer = AutoTokenizer.from_pretrained(MODEL_PATH, local_files_only=True, trust_remote_code=False)
+    tokenizer = AutoTokenizer.from_pretrained(model_path(), local_files_only=True, trust_remote_code=False)
     token_fit = render_stages(frozen["protocol"], tokenizer)
     token_fit["actual_tokenizer_boundaries"] = tokenizer_boundaries(tokenizer, frozen["protocol"]["stages"][0])
     cpu_controls()

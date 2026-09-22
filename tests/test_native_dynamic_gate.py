@@ -5,6 +5,7 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import platform
 from types import SimpleNamespace
 
 import pytest
@@ -14,7 +15,7 @@ from plat_harness.errors import HarnessError
 from plat_harness import native_dynamic_gate as gate
 from plat_harness.native_dynamic_gate import CANDIDATE_LIMITS, CANDIDATE_SCOPE, CONTROLS
 from plat_harness.native_qwen import MODEL_ID, REVISION
-from plat_harness.native_runtime_candidate import EXACT_FILES, EXACT_IDENTITY
+from plat_harness.native_runtime_candidate import expected_identity
 
 
 @pytest.fixture
@@ -43,16 +44,23 @@ def candidate_approval_fixture(tmp_path, monkeypatch):
     for path in [*base.glob("*.json"), base / "chat_template.jinja", code / "native_dynamic_gate.py"]:
         files[str(path)] = hashlib.sha256(path.read_bytes()).hexdigest()
 
-    monkeypatch.setattr(gate, "MODEL_PATH", str(base))
-    monkeypatch.setattr(gate, "RUNTIME", "/EXPLICIT_FAKE_RUNTIME")
+    # Model path / runtime are host configuration, pinned via env.
+    monkeypatch.setenv("PLAT_HARNESS_MODEL_PATH", str(base))
+    monkeypatch.setenv("PLAT_HARNESS_RUNTIME", "/EXPLICIT_FAKE_RUNTIME")
     monkeypatch.setattr(gate, "__file__", str(code / "native_dynamic_gate.py"))
     monkeypatch.setattr(gate, "PINNED_SMALL_DIGESTS", {name: files[str(base / name)] for name in gate.PINNED_SMALL_DIGESTS})
-    monkeypatch.setattr(gate.platform, "node", lambda: "spark-17d5")
+    # The sovereign host envelope is host configuration: tests pin it via env,
+    # not by compiling a hostname into the source.
+    monkeypatch.setenv("PLAT_HARNESS_SOVEREIGN_HOST", "explicit-offline-test-host")
+    monkeypatch.setattr(gate.platform, "node", lambda: "explicit-offline-test-host")
     monkeypatch.setattr(gate.platform, "system", lambda: "Linux")
     monkeypatch.setattr(gate.platform, "machine", lambda: "aarch64")
     monkeypatch.setattr(gate.os, "getuid", lambda: 1000)
+    monkeypatch.setenv("PLAT_HARNESS_SOVEREIGN_UID", "1000")
     monkeypatch.setattr(gate, "gpu_processes", lambda: [])
-    monkeypatch.setattr(gate, "check_runtime_probe", lambda *a, **k: copy.deepcopy(EXACT_IDENTITY))
+    monkeypatch.setenv("PLAT_HARNESS_RUNTIME", "/EXPLICIT_FAKE_RUNTIME")
+    monkeypatch.setenv("PLAT_HARNESS_SITE_PACKAGES", "/EXPLICIT_FAKE_SITE_PACKAGES")
+    monkeypatch.setattr(gate, "check_runtime_probe", lambda *a, **k: copy.deepcopy(expected_identity()))
     monkeypatch.setattr(gate, "verify_runtime_files", lambda *a, **k: None)
 
     for key, value in CONTROLS.items():
@@ -158,7 +166,7 @@ def test_candidate_gate_gpu_coresident_rejected(candidate_approval_fixture, monk
 
 def test_candidate_gate_runtime_drift_rejected(candidate_approval_fixture, monkeypatch):
     make, _ = candidate_approval_fixture
-    drifted = copy.deepcopy(EXACT_IDENTITY)
+    drifted = copy.deepcopy(expected_identity())
     drifted["torch_version"] = "2.11.0"  # missing +cu130 build suffix
     monkeypatch.setattr(gate, "check_runtime_probe", lambda *a, **k: gate.refuse("NATIVE_RUNTIME", "Torch build version mismatch"))
     with pytest.raises(HarnessError) as exc:
@@ -166,8 +174,10 @@ def test_candidate_gate_runtime_drift_rejected(candidate_approval_fixture, monke
     assert exc.value.code == "NATIVE_RUNTIME"
 
 
-def test_candidate_gate_prohibits_production_launch_without_human_approval(tmp_path):
+def test_candidate_gate_prohibits_production_launch_without_human_approval(tmp_path, monkeypatch):
     # Production entrypoint must refuse when called with unapproved file
+    monkeypatch.setenv("PLAT_HARNESS_SOVEREIGN_HOST", platform.node())
+    monkeypatch.setenv("PLAT_HARNESS_SOVEREIGN_UID", str(os.getuid()))
     auth_file = tmp_path / "unapproved_auth.json"
     auth_file.write_text(json.dumps({"approved": False, "approval_kind": "unapproved"}))
     auth_file.chmod(0o600)

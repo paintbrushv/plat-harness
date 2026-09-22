@@ -18,11 +18,31 @@ def dump(p, obj):
     return hashlib.sha256(p.read_bytes()).hexdigest()
 
 
-@pytest.fixture
-def bundle(tmp_path):
+@pytest.fixture(autouse=True)
+def private_root(tmp_path, monkeypatch):
+    """Point PLAT_HARNESS_PRIVATE_ROOT at this test's private tmp area.
+
+    Readiness bundle reads go through the adapter's fail-closed path gate,
+    which is host configuration: each test uses a fresh 0700 root. The
+    root itself is refused by the gate, so the fixture root is a dedicated
+    subdirectory and bundles live below it.
+    """
     tmp_path.chmod(0o700)
-    source=tmp_path/'raw.json'; sh=dump(source, {'synthetic': True})
-    intake=tmp_path/'intake.json'; ih=dump(intake, {'status':'UNCERTIFIED'})
+    root = tmp_path / 'private'
+    root.mkdir(mode=0o700)
+    monkeypatch.setenv('PLAT_HARNESS_PRIVATE_ROOT', str(root))
+    return root
+
+
+@pytest.fixture
+def bundle(tmp_path, private_root):
+    tmp_path.chmod(0o700)
+    # The gate refuses the configured root itself, so the readiness bundle
+    # lives one level below it.
+    base = private_root / 'bundle'
+    base.mkdir(mode=0o700)
+    source=base/'raw.json'; sh=dump(source, {'synthetic': True})
+    intake=base/'intake.json'; ih=dump(intake, {'status':'UNCERTIFIED'})
     row={'slug':'synthetic_property','asset_ids':['synthetic_apartments'],
          'source_validity':{'integrity':'HASH_VERIFIED','economic_validity':'INCOMPLETE_UNCERTIFIED_HISTORICAL','detail':'Synthetic source only'},
          'canonical_readiness':{'ready':False,'status':'BLOCKED_NOT_CANONICAL','blockers':['T12_REPAIRS_NOT_IMPLEMENTED','MISSING_MILLAGE'],'evidence':{'path':str(intake),'sha256':ih}},
@@ -37,14 +57,14 @@ def bundle(tmp_path):
              'assets':[{'id':'synthetic_apartments','slug':'synthetic_property','scope':'Synthetic apartments; retail excluded'}],
              'source_dependencies':[{'path':str(source),'sha256':sh,'slug':'synthetic_property','id':'S001'}],
              'exact_recommendation_files':[], 'additional_citation_dependencies':[]}
-    ph=dump(tmp_path/'director/approval_package.json',package)
+    ph=dump(base/'director/approval_package.json',package)
     matrix['approval_package_sha256']=ph
-    dump(tmp_path/'director/readiness_matrix.json',matrix)
-    dump(tmp_path/'authorization.json',{'intake_repairs':'BLOCKED_NO_RETRY_WITHOUT_RENEWED_PERMISSION','native_qwen_gpu_load':'NOT_AUTHORIZED'})
+    dump(base/'director/readiness_matrix.json',matrix)
+    dump(base/'authorization.json',{'intake_repairs':'BLOCKED_NO_RETRY_WITHOUT_RENEWED_PERMISSION','native_qwen_gpu_load':'NOT_AUTHORIZED'})
     def freeze():
-        files={str(p.relative_to(tmp_path)):hashlib.sha256(p.read_bytes()).hexdigest() for p in [tmp_path/'director/approval_package.json',tmp_path/'director/readiness_matrix.json',tmp_path/'authorization.json']}
-        return dump(tmp_path/'artifact_index.json',{'files':files})
-    return tmp_path, freeze, matrix, package, source
+        files={str(p.relative_to(base)):hashlib.sha256(p.read_bytes()).hexdigest() for p in [base/'director/approval_package.json',base/'director/readiness_matrix.json',base/'authorization.json']}
+        return dump(base/'artifact_index.json',{'files':files})
+    return base, freeze, matrix, package, source
 
 
 def run(bundle):

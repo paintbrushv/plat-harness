@@ -31,6 +31,20 @@ RECON_PATH = 'runs.build_underwriting_reconciliation.main'
 CANARY = 'PRIVATE_CANARY'
 
 
+@pytest.fixture(autouse=True)
+def private_root(tmp_path, monkeypatch):
+    """Point PLAT_HARNESS_PRIVATE_ROOT at this test's private tmp area.
+
+    The adapter's path gate is host configuration: every test runs against a
+    fresh 0700 root under tmp_path, never a builtin host directory.
+    """
+    tmp_path.chmod(0o700)
+    root = tmp_path / 'private'
+    root.mkdir(mode=0o700)
+    monkeypatch.setenv('PLAT_HARNESS_PRIVATE_ROOT', str(root))
+    return root
+
+
 def api():
     """Import the Task 3.4 seam; the RED run may raise ModuleNotFoundError."""
     from plat_harness.adapters import approved_execution as module
@@ -245,7 +259,7 @@ def rebuild_policy(case, *, status='approved', subject_id=SUBJECT, millage='20.5
 def host_env(monkeypatch, case, tmp_path):
     """Point the host registry env pins at a private 0600 registry file."""
     raw = b.encode(case['registry'])
-    path = tmp_path / 'host-registry.json'
+    path = tmp_path / 'private' / 'host-registry.json'
     path.write_bytes(raw)
     path.chmod(0o600)
     monkeypatch.setenv('PLAT_HARNESS_CONTRACT_REGISTRY_PATH', str(path))
@@ -253,7 +267,7 @@ def host_env(monkeypatch, case, tmp_path):
 
 
 def fresh_run_dir(tmp_path, name='run_001'):
-    run_dir = tmp_path / 'runs' / name
+    run_dir = tmp_path / 'private' / 'runs' / name
     run_dir.mkdir(mode=0o700, parents=True)
     return run_dir
 

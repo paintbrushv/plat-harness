@@ -25,10 +25,25 @@ from plat_harness.millage import parse_millage_rate
 from plat_harness.ranks import PermissionRank
 from plat_harness.tools.catalog import require_rank
 
-PRIVATE_ROOT = Path("/home/mdai/data/uplift")
+# The private data root is host configuration, not code: it is read from
+# PLAT_HARNESS_PRIVATE_ROOT at call time (fail-closed when unset). Tests and
+# other hosts point it at their own 0700 directory; nothing is hardcoded.
+PRIVATE_ROOT_ENV = "PLAT_HARNESS_PRIVATE_ROOT"
 ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9_.-]{0,119}\Z")
 SHA = re.compile(r"[0-9a-f]{64}\Z")
 VERSION = "slice-b-synthetic-v1"
+
+
+def private_root() -> Path:
+    """Read the configured private root from the environment at call time.
+
+    Refuses when unset or empty: the fail-closed default is "no root at all",
+    never a guessed or builtin path.
+    """
+    raw = os.environ.get(PRIVATE_ROOT_ENV, "")
+    if not raw:
+        refuse("UNSAFE_PATH", "PLAT_HARNESS_PRIVATE_ROOT must configure the private data root.")
+    return Path(raw)
 
 
 def refuse(code: str, message: str, **details: Any) -> None:
@@ -82,20 +97,21 @@ def decode(data: bytes) -> dict:
 
 
 def safe_path(raw: str | Path, *, directory: bool = False) -> Path:
+    root = private_root()
     p = Path(raw)
     if not p.is_absolute() or ".." in p.parts or p != p.resolve():
         refuse("UNSAFE_PATH", "Absolute private paths without symlinks or traversal are required.")
-    if not p.is_relative_to(PRIVATE_ROOT) or p == PRIVATE_ROOT:
+    if not p.is_relative_to(root) or p == root:
         refuse("UNSAFE_PATH", "Slice B artifacts must remain below the private data root.")
     for ancestor in (p, *p.parents):
-        if ancestor == PRIVATE_ROOT.parent:
+        if ancestor == root.parent:
             break
         if ancestor.is_symlink():
             refuse("UNSAFE_PATH", "Symlink paths are forbidden.")
         # The private root blocks access even if a historical intermediate
         # campaign directory retains broader mode bits. Enforce root and target
         # modes without changing campaign originals.
-        if ancestor in (p, PRIVATE_ROOT) and ancestor.exists() and ancestor.stat().st_mode & 0o077:
+        if ancestor in (p, root) and ancestor.exists() and ancestor.stat().st_mode & 0o077:
             refuse("UNSAFE_PATH", "Private root and target must not be group/world accessible.")
     if directory and not p.is_dir():
         refuse("NOT_FOUND", "Configured private run root must already exist.")

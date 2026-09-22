@@ -25,8 +25,9 @@ import uuid
 
 from plat_harness.errors import HarnessError
 from plat_harness.native_gate import CONTROLS, LIMITS, authorize, gpu_processes, open_safe
-from plat_harness.native_qwen import (MAX_LINE, MODEL_ID, REVISION, RUNTIME, dumps,
-                                      loads, normalize, parse_output, refuse, validate_response)
+from plat_harness.native_qwen import (MAX_LINE, MODEL_ID, REVISION, dumps,
+                                      loads, normalize, parse_output, refuse,
+                                      render_prompt, runtime_python, validate_response)
 
 GIB = 1024 ** 3
 
@@ -235,7 +236,7 @@ def supervise(store: Store, *, permit=None, fixture_worker=None, fixture_manifes
             store.write("permit.json", permit)
             permit_fd = os.open("permit.json", os.O_RDONLY | os.O_NOFOLLOW, dir_fd=store.fd)
             pass_fds = (permit_fd,)
-            command = [RUNTIME, "-B", "-m", "plat_harness.native_qwen_worker", "--permit-fd", str(permit_fd)]
+            command = [runtime_python(), "-B", "-m", "plat_harness.native_qwen_worker", "--permit-fd", str(permit_fd)]
         process = subprocess.Popen(command, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                                    env=env, start_new_session=True, pass_fds=pass_fds, bufsize=0)
         if permit_fd is not None:
@@ -470,6 +471,18 @@ def control(endpoint, op="shutdown"):
         conn.sendall((dumps({"op": op}) + "\n").encode())
 
 
+def native_lock_path() -> Path:
+    """Global resident-model lock path from host configuration at call time.
+
+    PLAT_HARNESS_NATIVE_LOCK_DIR must name the approved 0700 lock directory;
+    refusing when unset is the fail-closed default — never a builtin path.
+    """
+    raw = os.environ.get("PLAT_HARNESS_NATIVE_LOCK_DIR", "")
+    if not raw:
+        refuse("NATIVE_LOCK", "PLAT_HARNESS_NATIVE_LOCK_DIR must configure the host lock directory.")
+    return Path(raw) / ".native-qwen.lock"
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--authorization", type=Path, required=True)
@@ -484,7 +497,7 @@ def main():
     started = time.monotonic()
     try:
         # Global host lock prevents independently launched approved runs racing.
-        lock_path = Path("/home/mdai/data/uplift/campaign/next_stage/.native-qwen.lock")
+        lock_path = native_lock_path()
         lock_parent = open_safe(lock_path.parent, directory=True)
         try:
             lock = os.open(lock_path.name, os.O_RDWR | os.O_CREAT | os.O_NOFOLLOW, 0o600, dir_fd=lock_parent)
