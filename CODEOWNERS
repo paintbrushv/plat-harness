@@ -1,0 +1,7 @@
+# Same review set as .github/CODEOWNERS (glossary, millage, CoC, occupancy denom).
+/docs/glossary.yaml
+/harness/src/plat_harness/millage.py
+/harness/src/plat_harness/occupancy.py
+/harness/src/plat_harness/tools/certified_metric.py
+/policies/default.yaml
+/policies/examples/cashflow_first.yaml

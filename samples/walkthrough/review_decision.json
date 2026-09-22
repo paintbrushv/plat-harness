@@ -1,0 +1,15 @@
+{
+  "decision_id": "dec_walkthrough_001",
+  "resolutions": {
+    "horizon": {
+      "evidence": "synthetic-policy",
+      "value": "5"
+    },
+    "millage": {
+      "evidence": "synthetic-policy",
+      "value": "25.31"
+    }
+  },
+  "reviewer": "host_reviewer",
+  "status": "approved"
+}

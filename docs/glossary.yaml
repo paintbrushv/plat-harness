@@ -1,0 +1,377 @@
+# Certified glossary handshake.
+# Status: CERTIFIED | CONFLICT | DIRTY | UNSTRUCTURED | UNKNOWN
+# A CONFLICT row must not be averaged. The harness must pick one owner
+# per (metric, context) pair before answering.
+#
+# Contexts:
+#   uw_proforma  — acquisition underwriting (Decimal engine)
+#   ops_actuals  — in-place asset operations (ops SQLite / Standardized)
+#   governance   — GP policy docs (not runtime)
+#   standards    — GP underwriting standards (not runtime)
+#   plat_agent   — lifecycle recommendation / sanity bands (orchestration, not cashflow)
+#   market_study — rent-roll columns + comp emit (evidence, not house rent)
+#   deal_funnel  — GP kill list (human-owned)
+
+version: 0.2
+as_of: "2026-09-17"
+certification_owner: UNASSIGNED
+phase: "public extract — schema only; hurdles live in policies/*.yaml"
+
+metrics:
+  noi:
+    term: NOI
+    status: CONFLICT
+    definitions:
+      - context: uw_proforma
+        owner: engine/modules/cashflow.py
+        formula: "EGI - total_opex (Decimal). Debt service, replacement reserves, and CapEx are below NOI."
+        money: Decimal
+        notes: "Management fees that sit in opex_table ARE inside NOI. Asset-management fee is below NOI."
+      - context: ops_actuals
+        owner: ops ontology (variance/T12 backend)
+        formula: "Sum of mapped revenue + contra-revenue + operating-expense GL lines. Unmapped accounts excluded and disclosed."
+        money: f64
+        notes: "Management Fees are typically an NOI_CATEGORY expense. Ops money may be f64 — flagged, not mixed with Decimal."
+      - context: governance
+        owner: GP metric dashboard (policy, not runtime)
+        formula: "Total Revenue - Operating Expenses (sometimes excl. debt service, capex, mgmt fees)"
+        money: unspecified
+        notes: "Some GPs exclude management fees from NOI. Direct conflict with both engines."
+    handshake: "Do not answer 'NOI' without a context tag. Default: ops_actuals for owned assets, uw_proforma for deals. Governance definition is NOT runtime."
+
+  egi:
+    term: EGI
+    status: CERTIFIED
+    definitions:
+      - context: uw_proforma
+        owner: engine/modules/cashflow.py
+        formula: "net_rent + net_programs + utility_recovery"
+        money: Decimal
+    handshake: "Effective Gross Income. Reconstruct from T12 rental+other-income minus contra-revenue only when citing ops, and label as reconstructed."
+
+  gpr:
+    term: GPR
+    status: DIRTY
+    definitions:
+      - context: uw_proforma
+        owner: engine/modules/revenue.py
+        formula: "Market-rent surface × units before vacancy, LTL, concessions, collection loss. In-place vs market are separate curves."
+        money: Decimal
+      - context: governance
+        owner: GP metric dashboard
+        formula: "Market rent × Total units (implied)"
+    handshake: "Never treat broker OM GPR as house GPR. House Year-1 GPR is in-place lease rent unless comps certify market-rent upside."
+
+  vacancy_loss:
+    term: vacancy loss
+    status: CERTIFIED
+    definitions:
+      - context: uw_proforma
+        owner: engine/modules/revenue.py
+        formula: "Physical vacancy applied to billed rent before concessions and collection loss."
+    handshake: "Physical vacancy loss ≠ economic vacancy. Do not combine without saying so."
+
+  bad_debt:
+    term: bad debt
+    status: CONFLICT
+    definitions:
+      - context: uw_proforma
+        owner: collection_loss_curve
+        formula: "Collection-loss curve on rent/programs."
+      - context: ops_actuals
+        owner: ops ontology + collections snapshots
+        formula: "Write-offs / reserved amounts in GL Bad Debt category, distinct from delinquency AR."
+      - context: standards
+        owner: GP underwriting standards
+        formula: "Policy default as % of GPR (plugin, not kernel)"
+    handshake: "Bad debt is a P&L write-off. Delinquency is an AR snapshot. Never substitute one for the other."
+
+  economic_occupancy:
+    term: economic occupancy
+    status: CONFLICT
+    definitions:
+      - context: ops_actuals
+        owner: ops occupancy
+        formula: "in_place_rent_total / market_rent_total"
+      - context: governance
+        owner: GP metric dashboard
+        formula: "(Collected rent) / (Market rent × Total units)"
+      - context: standards
+        owner: GP underwriting standards
+        formula: "Economic Vacancy = vacancy + concessions + bad debt as % of GPR (inverse, not occupancy)"
+    handshake: "Numerators and denominators disagree across contexts. Pick ops_actuals for owned assets and refuse mixed citations."
+
+  physical_occupancy:
+    term: physical occupancy
+    status: CONFLICT
+    definitions:
+      - context: ops_actuals
+        owner: occupancy four-counts
+        formula: "occupied / (occupied + vacant + down)  # down units IN denominator"
+      - context: governance
+        owner: GP metric dashboard
+        formula: "(Units with active lease) / (Total units - down units)  # down units EXCLUDED"
+    handshake: "Always emit occupied, vacant, down, and the denominator used. Do not answer a rate without the four counts."
+
+  t12:
+    term: T12
+    status: CERTIFIED
+    definitions:
+      - context: ops_actuals
+        owner: ops T12
+        formula: "Trailing 12 monthly periods ending at specified YYYY-MM, from ingested actuals."
+      - context: uw_proforma
+        owner: engine T12 parser
+        formula: "Parsed trailing P&L used as comparison evidence, not as house tax/insurance by default."
+    handshake: "T12 is a period window, not a NOI definition. Never annualize a 13th total column."
+
+  trailing_actuals:
+    term: trailing actuals
+    status: CERTIFIED
+    handshake: "Line-by-line T12/P&L actuals used in the three-way reconciliation (actuals vs broker OM vs house). Subtotal rows are not additive."
+
+  pro_forma:
+    term: pro forma
+    status: DIRTY
+    handshake: "Broker OM pro forma ≠ house underwrite. Always name whose pro forma. House case is the engine output of canonical deal JSON."
+
+  in_place_rent:
+    term: in-place rent
+    status: CERTIFIED
+    definitions:
+      - context: uw_proforma
+        formula: "Lease rent / base_rent from standardized rent roll. Not PMS market rent."
+      - context: market_study
+        owner: rent-roll standardizer
+        formula: "Column `lease_rent` — in-place / contractual when available."
+      - context: ops_actuals
+        formula: "Rent-roll snapshot in_place_rent_total"
+    handshake: "Year-1 house revenue defaults to in-place, not market. Do not treat `resident_name` on that CSV as a metric."
+
+  market_rent:
+    term: market rent
+    status: CERTIFIED
+    handshake: "Capped upside only after comps_cohort_grouped.json (or equivalent certified comps four-pack). Uncapped PMS market-rent is UNCERTIFIED."
+
+  loss_to_lease:
+    term: loss-to-lease
+    status: CERTIFIED
+    definitions:
+      - context: uw_proforma
+        formula: "Gap between in-place and market; Year-1 house does not take the gap without comps."
+    handshake: "Engine does not auto-capture LTL. Policy capture rates are not certified until written into canonical JSON."
+
+  concession:
+    term: concession
+    status: CERTIFIED
+    definitions:
+      - context: uw_proforma
+        formula: "free_months | fixed_dollar | pct_rent on concession_schedule"
+      - context: ops_actuals
+        formula: "GL Concessions category (contra-revenue) plus leasing snapshot concessions_amount"
+    handshake: "Never net concessions into vacancy."
+
+  turnover_cost:
+    term: turnover cost
+    status: DIRTY
+    handshake: "Ops turn cost is actuals. UW turn cost is a reserve floor. Do not mix."
+
+  capex_vs_repairs:
+    term: CapEx vs Repairs
+    status: CERTIFIED
+    handshake: "CapEx is below NOI. R&M is inside NOI. A large R&M spike is a question, never a silent reclass."
+
+  t12_repairs_and_maintenance:
+    term: T12 Repairs & Maintenance
+    status: CERTIFIED
+    definitions:
+      - context: ops_actuals
+        owner: ops T12 + account_mappings.noi_category
+        formula: "Sum of trailing-12 gl_actuals.amount (latest GL month, period_window n=12) where category / account_mappings.noi_category is 'Repairs & Maintenance'. Duplicate ingest rows collapsed. Missing feed is not $0."
+        money: f64
+        notes: "Some capital account codes may be mapped into this category by the ops ontology; cite codes, do not silently reclass."
+    handshake: "Owned-asset T12 opex line. Do not average with UW vintage R&M floors. Cite account codes. Never report $0 for a missing feed."
+
+  dscr:
+    term: DSCR
+    status: CONFLICT
+    definitions:
+      - context: uw_proforma
+        owner: engine/modules/metrics.py
+        formula: "monthly NOI / monthly debt service; also min and average over hold"
+      - context: governance
+        formula: "Trailing 12-month NOI / Annual P&I; target is GP policy"
+    handshake: "Always state period (month vs T12) and whether IO vs amortizing."
+
+  debt_yield:
+    term: debt yield
+    status: UNKNOWN
+    notes: "Often defined as T12 NOI / loan balance. Not a first-class named output until wired."
+    handshake: "If asked, compute only from certified NOI + certified loan balance, or refuse."
+
+  irr:
+    term: IRR
+    status: CONFLICT
+    definitions:
+      - context: uw_proforma
+        owner: engine/modules/metrics.py
+        formula: "True IRR on levered/unlevered cash flows + exit."
+        money: Decimal
+      - context: governance
+        formula: "XIRR on actual cash flows + current valuation; GP LP-net target is policy"
+      - context: forge
+        formula: "cumulative_irr = cash_on_cash * 0.8  # NOT a real IRR"
+        money: f64
+    handshake: "FORGE-style IRR (CoC * 0.8) is uncertified and must never be cited. House UW IRR is engine-only."
+
+  equity_multiple:
+    term: equity multiple
+    status: CONFLICT
+    definitions:
+      - context: uw_proforma
+        formula: "(sum(leveraged_cf) + equity_at_exit) / initial_equity"
+      - context: governance
+        formula: "(Cumulative Distributions + Remaining Value) / Total Capital Contributions"
+    handshake: "Gross vs net-to-LP must be labeled."
+
+  cash_on_cash:
+    term: cash-on-cash
+    status: CONFLICT
+    definitions:
+      - context: uw_proforma
+        owner: engine/modules/metrics.py
+        formula: "(leveraged_cash_flow_y1 - AM_fee_y1 - partnership_expenses_y1) / total_equity_basis"
+        hurdle: "Year-1 after debt. The numeric hurdle is policies/*.yaml — not compiled into this glossary. Display rounding must not decide compliance."
+        money: Decimal
+      - context: metrics_spec_stale
+        formula: "annual_leveraged_cf / initial_equity  # OMITS AM fee; STALE vs code"
+      - context: governance
+        formula: "(NOI - Debt Service - Capex) / Equity Invested; often a *stabilized* target — a different metric"
+      - context: forge
+        formula: "(monthly cash_flow * 12) / equity; one path may hardcode equity"
+    handshake: "Primary house metric is Year-1 post-debt, post-AM-fee CoC on total_equity_basis. AM fee is a percent of equity, never of EGI. FORGE CoC is uncertified. MCP feasibility helpers that ignore CoC are not the buy-box."
+
+  cap_rate:
+    term: cap rate
+    status: CONFLICT
+    definitions:
+      - context: uw_proforma
+        formula: "Year-1 analysis-year NOI / purchase price (going-in). Sanity band is engine/policy, not a dashboard average."
+      - context: plat_agent_sanity
+        formula: "Orchestration warning bands may differ from the engine HARD band. CONFLICT — do not mix."
+      - context: deal_funnel
+        formula: "Pre-model kill on in-place cap is GP policy, not the house going-in."
+    handshake: "Going-in uses Year-1 analysis-year NOI, not a partial calendar year. Broker cap is not house cap. Do not average competing bands."
+
+  exit_cap:
+    term: exit cap
+    status: CERTIFIED
+    definitions:
+      - context: uw_proforma
+        formula: "exit_assumptions.exit_cap_rate; sale = forward_NOI / exit_cap"
+    handshake: "Must be stated; never implied from going-in."
+
+  hold_period:
+    term: hold period
+    status: CERTIFIED
+    handshake: "Always cite the case's exit_month."
+
+  unit_mix:
+    term: unit mix
+    status: CERTIFIED
+    handshake: "Canonical unit_cohorts after standardized rent-roll rebase. Parser 0BR from opaque codes is a defect unless labeled studio/efficiency."
+
+  make_ready:
+    term: make-ready
+    status: CERTIFIED
+    handshake: "Work to prepare a unit after move-out. Distinct from CapEx renovation."
+
+  work_order_aging:
+    term: work order aging
+    status: UNKNOWN
+    notes: "No ingested work-order feed in this public extract."
+    handshake: "Refuse until a certified feed exists."
+
+  crime_index:
+    term: crime index
+    status: UNKNOWN
+    notes: "Buy-box crime screens have no feed in this extract."
+    handshake: "Refuse until a certified feed exists. Do not guess."
+
+  flood_zone:
+    term: flood zone
+    status: UNKNOWN
+    notes: "Buy-box flood screens have no feed in this extract."
+    handshake: "Refuse until a certified feed exists. Do not guess."
+
+  employer_concentration:
+    term: employer concentration
+    status: UNKNOWN
+    notes: "Buy-box employer-concentration screens have no feed in this extract."
+    handshake: "Refuse until a certified feed exists. Do not guess."
+
+  expense_ratio:
+    term: expense ratio
+    status: DIRTY
+    handshake: "Cite as NOI margin and name numerator/denominator."
+
+  payroll:
+    term: payroll
+    status: CERTIFIED
+    handshake: "Employee health insurance is payroll/benefits, not property insurance. Nested payroll subtotals must not double-count."
+
+  contract_services:
+    term: contract services
+    status: CERTIFIED
+    handshake: "TOTAL CONTRACT SERVICES is a rollup, not an additive opex line."
+
+  asset_management_fee:
+    term: asset management fee
+    status: CONFLICT
+    definitions:
+      - context: uw_proforma
+        formula: "Percent of equity invested (policy plugin). Below NOI, inside CoC."
+      - context: fee_calcs_draft
+        formula: "Tied to AUM or NOI (draft, unspecified)"
+    handshake: "House CoC uses equity-basis AM fee. Never compute as a percent of EGI."
+
+  insurance_per_unit:
+    term: Year-1 insurance / unit
+    status: CONFLICT
+    definitions:
+      - context: uw_proforma
+        formula: "Floor is policies/*.yaml. Do not present any dollar floor as 'the' GP standard."
+      - context: standards
+        formula: "GP standards may be higher than the engine floor."
+    handshake: "Do not silently step down broker insurance below T12 without a quote."
+
+  effective_rent:
+    term: effective rent
+    status: CONFLICT
+    definitions:
+      - context: market_study_comps
+        formula: "Face rent after concessions. Emit may map asking_rent from effective_rent or fallback face_rent."
+      - context: uw_proforma
+        formula: "House effective is in-place minus named concession_schedule rows, not an 11/12 shortcut."
+    handshake: "Do not mix report-math shortcuts with engine concession_schedule. Label which."
+
+  millage_rate:
+    term: combined property-tax millage
+    status: CERTIFIED
+    definitions:
+      - context: uw_proforma
+        owner: engine property_tax + harness millage gate
+        formula: "millage_rate_mills per $1,000 of assessed value; assessment_ratio=1.00 unless analyst_override. Trailing/T12 tax is comparison only."
+    handshake: "Missing/conflicting millage blocks valuation. Operator: plat-harness underwrite --millage-rate <mills>."
+
+  recommendation_gate:
+    term: lifecycle recommendation
+    status: CONFLICT
+    definitions:
+      - context: plat_agent
+        formula: "Post-UW proceed gate on certified CoC + DSCR + blocker_count. Hurdle comes from policies/*.yaml. Float orchestration, not Decimal cashflow."
+      - context: mcp_feasibility
+        formula: "Some MCP helpers gate IRR/DSCR/LTV and IGNORE CoC."
+      - context: deal_funnel
+        formula: "Pre-model kill checklist (units, vintage, crime/flood/employer, millage). Crime/flood/employer refuse without a feed."
+    handshake: "Three different gates. Buy-box wraps GP policy + millage. CoC proceed gate is post-UW. MCP feasibility is not either."

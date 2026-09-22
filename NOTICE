@@ -1,0 +1,9 @@
+plat-harness
+Copyright 2026 plat-harness contributors
+
+Licensed under the Apache License, Version 2.0.
+
+This tree is the harness (loop, tools, glossary schema, CLI, ranks, middleware).
+The Decimal underwriting engine is not vendored. Import it via
+PLAT_HARNESS_ENGINE_ROOT or a separately licensed package. This extract does
+not ship cash-on-cash, IRR, DSCR, equity-multiple, or cap-rate arithmetic.

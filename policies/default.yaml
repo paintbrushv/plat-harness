@@ -1,0 +1,24 @@
+version: 1
+# Generic GP plugin. You MUST set the null fields before treating a number as a hurdle.
+# This file is not a recommended buy-box and does not compile any GP's CoC percentage.
+
+coc_hurdle: null  # required: Year-1 post-debt cash-on-cash as a decimal ratio. Unset → not a certified hurdle.
+buy_box:
+  min_units: null
+  max_units: null
+  in_place_cap_kill: null
+millage:
+  required: true  # plat-harness underwrite without --millage-rate → MISSING_MILLAGE
+occupancy:
+  require_four_counts: true  # occupied, vacant, down, denominator
+  down_in_denominator: true
+conflicts:
+  average_competing_formulas: false
+feeds:
+  missing_is_not_zero: true
+  crime_flood_employer: refuse_if_missing
+comps:
+  four_pack_required_for_rent_upside: true
+engine:
+  invent_returns: false
+  forge_irr_forbidden: true

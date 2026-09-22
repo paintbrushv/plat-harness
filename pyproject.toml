@@ -1,0 +1,61 @@
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "plat-harness"
+version = "0.1.0"
+description = "Agent-agnostic control plane for multifamily underwriting and ops. The model is rented."
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "Apache-2.0"}
+dependencies = [
+    "pyyaml>=6.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "openpyxl>=3.1,<4",
+    "xlrd>=2.0.2,<3",
+    'tomli>=2; python_version < "3.11"',
+]
+# CSV ingestion is stdlib-only; spreadsheet readers are opt-in.
+ingest = [
+    "openpyxl>=3.1,<4",
+    "xlrd>=2.0.2,<3",
+]
+# PDF rent-roll ingest and the synthetic PDF test generator. Opt-in: a core
+# install must parse nothing and install no PDF stack it did not ask for.
+pdf = [
+    "pdfplumber>=0.11,<1",
+    "reportlab>=4,<6",
+]
+# Engine extra is documented, not vendored. Set PLAT_HARNESS_ENGINE_ROOT.
+engine = []
+# Sovereign extra: the owner-reviewed private native runtime pins. These GPU
+# frameworks are optional and only imported inside explicitly authorized
+# sovereign workflows; a core install never pays for them. Pins match the
+# reviewed runtime venv (qwen36-unsloth) exactly.
+sovereign = [
+    "torch==2.11.0",
+    "transformers==5.5.0",
+    "peft==0.20.0",
+    "trl==0.24.0",
+    "datasets==4.3.0",
+    "accelerate==1.14.0",
+    "unsloth==2026.8.18",
+]
+
+[project.scripts]
+plat-harness = "plat_harness.cli:main"
+plat-underwrite = "plat_harness.cli_underwrite:main"
+plat-ops = "plat_harness.cli_ops:main"
+
+[tool.setuptools.packages.find]
+where = ["harness/src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+pythonpath = ["harness/src"]

@@ -1,0 +1,7 @@
+# CODEOWNERS — fill with the public org/team handles at publish time.
+# Until then, the default requires no auto-assignment.
+# * @your-org/plat-harness-maintainers
+
+# Financial-policy surfaces need explicit review
+# /governance/glossary/    @your-org/plat-harness-maintainers
+# /policies/               @your-org/plat-harness-maintainers
