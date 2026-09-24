@@ -114,13 +114,22 @@ Apache-2.0. See `LICENSE` and `NOTICE`.
 ## Running the test suite
 
 Run the tests under a private umask — the storage and acceptance layers
-**refuse group/world-writable artifact paths by design** (fail-closed mode
-checks), so a default `umask 022`/`002` will surface those refusals as
-failures:
+**refuse group/world-writable paths by design** (fail-closed mode checks on
+the artifact root *and every ancestor*). A default login umask (`022`/`002`)
+leaves the clone directory itself group-writable and the suite will surface
+those refusals as failures. Set the umask **before cloning**, or chmod the
+checkout afterwards:
 
 ```bash
 umask 077
+git clone https://github.com/paintbrushv/plat-harness && cd plat-harness
 pytest
+```
+
+If an existing checkout was made with a permissive umask:
+
+```bash
+chmod -R go-w /path/to/plat-harness
 ```
 
 (`pyproject.toml` pins a repo-local basetemp — `.pytest-tmp` — because
