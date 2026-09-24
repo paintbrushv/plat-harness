@@ -120,7 +120,7 @@ failures:
 
 ```bash
 umask 077
-pytest -p no:cacheprovider -q tests
+pytest
 ```
 
 (`pyproject.toml` pins a repo-local basetemp — `.pytest-tmp` — because

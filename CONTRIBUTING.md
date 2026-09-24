@@ -18,7 +18,7 @@ Run `pytest` with vendor API keys unset. Absence of a `claude` binary is allowed
 python3 -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev]"
 umask 077
-pytest -p no:cacheprovider -q tests
+pytest
 ```
 
 Run tests with vendor API keys unset; absence of any `claude`/SDK binary is
