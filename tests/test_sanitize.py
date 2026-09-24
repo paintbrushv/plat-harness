@@ -70,5 +70,11 @@ def test_samples_have_no_resident_name_column() -> None:
 
 
 def test_no_boxscore_db_in_tree() -> None:
-    dbs = list(REPO.glob("**/*.db"))
+    # Test fixtures legitimately create synthetic ops.db files under the
+    # repo-local basetemp; the gate targets the SHIPPED tree.
+    skip_dirs = {".git", ".venv", ".deps", "__pycache__", ".pytest_cache", ".pytest-tmp"}
+    dbs = [
+        path for path in REPO.glob("**/*.db")
+        if not any(part in skip_dirs for part in path.parts)
+    ]
     assert dbs == []
