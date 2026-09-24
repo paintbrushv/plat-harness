@@ -61,3 +61,8 @@ where = ["harness/src"]
 testpaths = ["tests"]
 addopts = "-q"
 pythonpath = ["harness/src"]
+# The storage/acceptance layers refuse group/world-writable (or sticky-bit)
+# artifact ancestors by design; pytest's default basetemp lives under /tmp
+# (mode 1777) and trips that gate. Keep the basetemp inside the clone, where
+# ancestor modes are safe. Overridden by an explicit --basetemp on the CLI.
+basetemp = ".pytest-tmp"

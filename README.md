@@ -120,8 +120,12 @@ failures:
 
 ```bash
 umask 077
-pytest -p no:cacheprovider -o addopts= -q tests
+pytest -p no:cacheprovider -q tests
 ```
+
+(`pyproject.toml` pins a repo-local basetemp — `.pytest-tmp` — because
+pytest's default `/tmp` location carries the sticky bit the mode gates
+refuse; an explicit `--basetemp` overrides it if you prefer.)
 
 All host-specific configuration (`PLAT_HARNESS_PRIVATE_ROOT`,
 `PLAT_HARNESS_NATIVE_LOCK_DIR`, `PLAT_HARNESS_SOVEREIGN_HOST`/`_UID`,
