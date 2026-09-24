@@ -37,7 +37,7 @@ _SAMPLE_GLOBS = (
 
 
 def _iter_text_files() -> list[Path]:
-    skip_dirs = {".git", ".venv", ".deps", "__pycache__", ".pytest_cache"}
+    skip_dirs = {".git", ".venv", ".deps", "__pycache__", ".pytest_cache", ".pytest-tmp"}
     files: list[Path] = []
     for path in REPO.rglob("*"):
         if not path.is_file():
