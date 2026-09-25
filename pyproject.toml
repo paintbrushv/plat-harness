@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=68.0"]
+requires = ["setuptools>=77.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -8,7 +8,30 @@ version = "0.1.0"
 description = "Agent-agnostic control plane for multifamily underwriting and ops. The model is rented."
 readme = "README.md"
 requires-python = ">=3.10"
-license = {text = "Apache-2.0"}
+license = "Apache-2.0"
+license-files = ["LICENSE"]
+authors = [
+    {name = "paintbrush"}
+]
+keywords = [
+    "multifamily",
+    "real-estate",
+    "underwriting",
+    "control-plane",
+    "agent-tools",
+    "proptech",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Financial and Insurance Industry",
+    "Intended Audience :: Real Estate",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Office/Business :: Financial :: Investment",
+]
 dependencies = [
     "pyyaml>=6.0",
 ]
@@ -56,6 +79,15 @@ plat-ops = "plat_harness.cli_ops:main"
 
 [tool.setuptools.packages.find]
 where = ["harness/src"]
+
+[tool.setuptools.package-data]
+plat_harness = ["py.typed", "samples_data/*"]
+
+[project.urls]
+Homepage = "https://github.com/paintbrushv/plat-harness"
+Repository = "https://github.com/paintbrushv/plat-harness"
+Issues = "https://github.com/paintbrushv/plat-harness/issues"
+Changelog = "https://github.com/paintbrushv/plat-harness/blob/main/README.md"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

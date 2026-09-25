@@ -1,0 +1,36 @@
+{
+  "files": [
+    {
+      "format": "csv",
+      "name": "debt_schedule.csv",
+      "sha256": "77a98c8d2c3dbe12a722f235f160b74834d75386b5fdf974336931d56f01170b"
+    },
+    {
+      "format": "pdf",
+      "name": "om.pdf",
+      "sha256": "f80495cc5372ad0c30a9dbb99cc0bd2d069e0f382af58a4ace44d507d3bb99ea"
+    },
+    {
+      "format": "sqlite",
+      "name": "ops_snapshot.sqlite",
+      "sha256": "4018ca72490ded325ce8899ba35390eedcd58e58cd0a38f8835084a76c860191"
+    },
+    {
+      "format": "pdf",
+      "name": "rent_roll.pdf",
+      "sha256": "84c4a1ccf6ca1f0f6389fced324192b765c76a365117a7e8763a2f6dccfb2b23"
+    },
+    {
+      "format": "json",
+      "name": "review_decision.json",
+      "sha256": "364d12165dece74fc072884b9d6322345d35b40653eef89b0dd3426534598d7c"
+    },
+    {
+      "format": "xlsx",
+      "name": "t12.xlsx",
+      "sha256": "514a547ab4198ab715b48bb1fa413fb72ffe2ed6c1e75fc50f3cc0252cb186ed"
+    }
+  ],
+  "synthetic": true,
+  "version": "walkthrough-samples/1.0.0"
+}
