@@ -12,6 +12,9 @@ millage:
 occupancy:
   require_four_counts: true  # occupied, vacant, down, denominator
   down_in_denominator: true
+  lease_up_below: 0.85  # under this rate is lease-up; down units, negative NOI, or a large deferred-maintenance bill is distressed
+directed_objective:
+  metric: year_2_unlevered_yield_on_cost  # year-2 NOI / (purchase price + capex). Not a cash-on-cash strike. coc_hurdle stays null.
 conflicts:
   average_competing_formulas: false
 feeds:

@@ -15,6 +15,7 @@ from plat_harness.glossary import Glossary, Metric, load_glossary
 from plat_harness.millage import parse_millage_rate
 from plat_harness.occupancy import OccupancyCounts, require_occupancy_counts
 from plat_harness.ranks import PermissionRank
+from plat_harness.underwriting_direction import classify_physical_position
 from plat_harness.tools.catalog import require_rank
 
 _OCCUPANCY_METRICS = frozenset({"physical_occupancy"})
@@ -261,4 +262,12 @@ def _occupancy_payload(
             "handshake": metric.handshake,
         }
     )
+    position = classify_physical_position(
+        counts.occupied,
+        counts.vacant,
+        counts.down,
+        counts.denominator,
+    )
+    if position is not None:
+        payload["position"] = position.label
     return payload

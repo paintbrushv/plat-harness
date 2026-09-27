@@ -26,6 +26,9 @@ plat-harness = "plat_harness.cli:main"
 [tool.setuptools.packages.find]
 where = ["harness/src"]
 
+[tool.setuptools.package-data]
+plat_harness = ["glossary.yaml"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q"

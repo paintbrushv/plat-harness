@@ -34,6 +34,7 @@ deal room.
 | `plat-harness ask` | NL or `--metric` → tools only. CONFLICT metrics need `--context`. |
 | `plat-harness scoreboard` | Pipeline tile: certified CoC/occupancy or `uncertified_empty`. |
 | `plat-harness underwrite --millage-rate` | Deal path. Millage-less runs refuse. |
+| `plat-harness present --result` | Copy an engine result. Withhold the bid outside the reasonability bands. |
 
 Occupancy answers must emit **occupied, vacant, down, and the denominator**.
 Missing millage → `MISSING_MILLAGE`. Missing feed ≠ `$0`. `IRR = CoC * 0.8` is forbidden.
@@ -91,6 +92,8 @@ Hurdles live in `policies/default.yaml`. The default file is a **generic GP
 template**: `coc_hurdle` is `null` until you set it. Copy
 `policies/examples/cashflow_first.yaml` and fill in **your** Year-1 CoC ratio.
 This kernel does not ship a compiled cash-on-cash percentage or a unit-count box.
+The directed price is year-2 unlevered yield on cost. Cash-on-cash stays a
+reported metric and is not that price.
 
 ## Engine extra
 

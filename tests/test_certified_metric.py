@@ -91,6 +91,7 @@ def test_occupancy_with_counts_emits_denominator(glossary) -> None:
     assert result["denominator"] == 80
     assert result["value"] == 0.9
     assert result["period"] == "2026-06"
+    assert result["position"] == "distressed"
 
 
 def test_occupancy_zero_denominator_forbidden(glossary) -> None:

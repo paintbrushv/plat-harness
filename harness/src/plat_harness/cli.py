@@ -5,6 +5,8 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from decimal import Decimal
+from pathlib import Path
 from typing import Any
 
 from plat_harness import __version__
@@ -18,6 +20,7 @@ from plat_harness.errors import (
 from plat_harness.millage import PROPERTY_TAX_MILLAGE_QUESTION, parse_millage_rate
 from plat_harness.models import NullModel
 from plat_harness.ranks import PermissionRank
+from plat_harness.reasonability import present_underwriting
 from plat_harness.tools.certified_metric import get_certified_metric
 from plat_harness.tools.stubs import call_stub
 
@@ -44,6 +47,8 @@ def main(argv: list[str] | None = None) -> int:
             return _cmd_scoreboard(args)
         if args.command == "underwrite":
             return _cmd_underwrite(args)
+        if args.command == "present":
+            return _cmd_present(args)
         parser.print_help()
         return 2
     except HarnessError as exc:
@@ -84,6 +89,16 @@ def _build_parser() -> argparse.ArgumentParser:
     uw.add_argument("--millage-rate", dest="millage_rate")
     uw.add_argument("--deal")
     uw.add_argument("--rank", type=int, default=2, choices=(0, 1, 2, 3))
+
+    present = sub.add_parser(
+        "present",
+        help="Reasonability gate. Copies engine figures and withholds a bid outside the bands.",
+    )
+    present.add_argument("--kind", default="solved_strike", choices=("solved_strike", "triangle", "scoreboard"))
+    present.add_argument("--market", default=None)
+    present.add_argument("--result", required=True, help="Engine JSON. NOI and strike are not rewritten.")
+    present.add_argument("--model-reasonable", action="store_true")
+    present.add_argument("--rank", type=int, default=None, choices=(0, 1, 2, 3))
     return parser
 
 
@@ -208,6 +223,26 @@ def _scoreboard_try(
             gaps.append(exc.as_dict())
             return
         raise
+
+
+def _cmd_present(args: argparse.Namespace) -> int:
+    payload = json.loads(Path(args.result).read_text(encoding="utf-8"))
+    rank = PermissionRank(args.rank) if args.rank is not None else None
+    issued = present_underwriting(
+        payload,
+        kind=args.kind,
+        market=args.market,
+        model_reasonable=bool(args.model_reasonable),
+        session_rank=rank,
+    )
+    print(json.dumps(issued, indent=2, default=_json_default))
+    return 0 if issued["present_as_bid"] else 2
+
+
+def _json_default(value: object) -> str:
+    if isinstance(value, Decimal):
+        return format(value, "f")
+    raise TypeError(f"Object of type {type(value).__name__} is not JSON serializable")
 
 
 def _cmd_underwrite(args: argparse.Namespace) -> int:
