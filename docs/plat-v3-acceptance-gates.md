@@ -10,8 +10,8 @@ was used. The source-of-record remains unchanged.
 
 | Component | Git commit | Role |
 |---|---|---|
-| `plat-harness` | `c8594ba1f040f78d402df29994c02d20a583b2f8` | merged temporal/opening runtime and four-package verifier; merged integration passed |
-| `plat-agent` | `cc484170e413d9d49c407775fd9e3f9480b24d19` | merged installed-package, MCP, and explicit deal-data adapters; main CI passed |
+| `plat-harness` | `1108917fb1da55c373d32dc2330f00610db2e0a4` | merged temporal/opening runtime and self-commit installed verifier; main CI and integration passed |
+| `plat-agent` | `a19d726ae8006e3ccbfc6984fcfef0d02abf02e3` | merged installed-package, MCP, explicit deal-data, and house backsolve adapters; main CI passed |
 | `plat-costmodel` | `518142ecb8771e52fcc9985237fe1a6f97a76168` | reviewed cost package |
 | `plat-multifamily-underwriting` | `10a88ed393e6d6611c8c710b5e15ef64e128af6b` | reviewed engine 0.1.1 and packaged MCP adapter; seven-job main CI passed |
 | `plat-operations` | `171eb9622f53fe9d6b9703191d5a6832064100ed` | public Oak Ridge fixture |
@@ -19,7 +19,7 @@ was used. The source-of-record remains unchanged.
 An independent clean environment installed wheels built from these exact
 merged SHAs, with `PYTHONPATH`, sibling path variables, host MCP command
 overrides, and the deal-data-root override unset. All four wheels came from
-`git archive` of the exact commits above, including current harness main.
+`git archive` of the exact commits above.
 `python -I`
 loaded all four projects from site-packages, verified both producer content
 pins and mismatch refusal, and reproduced TEST-001 year-two unlevered NOI
@@ -29,14 +29,17 @@ total capex `1,758,150`, yield on cost
 TEST-001 deal fixture loaded, direct underwriting/scenario/agency adapters
 worked, the installed costmodel MCP server returned 11 tools, and the
 installed `plat.underwriting.mcp/1` server returned validation, summary, and
-feasibility over stdio with LTV `0.65`. `pip check` passed. The installed
+feasibility over stdio with LTV `0.65`. The installed `engine.backsolve`
+module produced three synthetic pricing artifacts from the installed agent
+fixture while running from a temporary directory. `pip check` passed. The installed
 harness temporal/opening modules imported from
 site-packages and completed a one-row observed opening import with exact-cent
 parity, no later-date carry-forward, and a refused unauthorized historical
 read. Agent and underwriting main CI passed on the exact merged SHAs. The
 previous installed integration set used agent `7ceb818` and underwriting
-`0d106d6`; the new set removes the default underwriting MCP source-checkout
-requirement. Federated prompt dispatch still needs versioned prompt assets
+`0d106d6`; the new set removes the default underwriting MCP, house pricing
+script, and lifecycle artifact-root source-checkout requirements. Federated
+prompt dispatch still needs versioned prompt assets
 and an actual host validation.
 
 Observed wheel SHA-256 values from `git archive` of the tabled commits,
@@ -44,9 +47,9 @@ followed by `python -m pip wheel --no-deps --no-build-isolation`:
 
 | Wheel | SHA-256 |
 |---|---|
-| `plat_agent-0.1.0-py3-none-any.whl` | `9c8674dd4cee2f0e42dbbf35561939a1131ac82671391b4826b42fb07595589b` |
+| `plat_agent-0.1.0-py3-none-any.whl` | `023bd882c78873ab766a7c4bbb163a3fe1d918e9b93a9a8bf76f969df963ba1d` |
 | `plat_costmodel-0.1.0-py3-none-any.whl` | `8b72ec463da82bb41dbd38fb97e035d712e403bede0c3ed19b665bb648156fb0` |
-| `plat_harness-0.1.0-py3-none-any.whl` | `29dcb659b763e65b0b828a1a502a947ceaf3be2e5a06d4d7d54a488cdc7c53b6` |
+| `plat_harness-0.1.0-py3-none-any.whl` | `6c6ca7deaa4d938c27ddd93eab93f8e8e087d749d354379d61500a18d312a018` |
 | `plat_multifamily_underwriting-0.1.1-py3-none-any.whl` | `1157b4155b0628169e5319f08d2acf427f15b02229b745fad2988eb3af45ae60` |
 
 These are observed build-file hashes, not a claim of byte-for-byte
@@ -56,20 +59,25 @@ of the same Git commit; its installed source-content pin still matched.
 The install check used a new Python 3.14 environment:
 
 ```text
-python3 -m venv <clean-env>
-<clean-env>/bin/python -m pip install --no-cache-dir <merged-wheels>/*.whl
-<clean-env>/bin/python -m pip check
+python3 -m venv /tmp/plat-v3-final-install/venv
+/tmp/plat-v3-final-install/venv/bin/python -m pip install --no-cache-dir \
+    /tmp/plat-v3-final-install/wheels/plat_harness-0.1.0-py3-none-any.whl \
+    /tmp/plat-v3-final-install/wheels/plat_agent-0.1.0-py3-none-any.whl \
+    /tmp/plat-v3-latest-merged/wheels/plat_costmodel-0.1.0-py3-none-any.whl \
+    /tmp/plat-v3-latest-merged/wheels/plat_multifamily_underwriting-0.1.1-py3-none-any.whl mcp
+/tmp/plat-v3-final-install/venv/bin/python -m pip check
 env -u PYTHONPATH -u PLAT_COSTMODEL_PATH -u PLAT_COSTMODEL_DEFERRED_PATH \
     -u PLAT_MULTIFAMILY_UNDERWRITING_PATH -u UNDERWRITING_ENGINE_PATH \
     -u PLAT_DEALS_ROOT -u UNDERWRITING_MCP_CMD -u PLAT_COSTMODEL_CMD \
-    PLAT_HARNESS_EXPECTED_SHA=c8594ba1f040f78d402df29994c02d20a583b2f8 \
-    <clean-env>/bin/python -I scripts/verify_public_install.py
+    PLAT_HARNESS_EXPECTED_SHA=1108917fb1da55c373d32dc2330f00610db2e0a4 \
+    /tmp/plat-v3-final-install/venv/bin/python -I scripts/verify_public_install.py
 ```
 
 The committed script asserts site-packages origins, adapter version/content
 pins and stale-content refusal, direct underwriting/scenario/agency imports,
-TEST-001 economics and withheld bid, packaged deal fixture loading, and a
+TEST-001 economics and withheld bid, packaged deal fixture loading, and
 bounded local stdio handshakes with both installed producer servers. It also
+executes the installed house pricing module from a temporary directory,
 checks the installed opening-state import, scoped historical read refusal,
 and absence of forward-filled opening values.
 The `V3 public integration` GitHub workflow installs the three exact producer
@@ -112,7 +120,7 @@ budget revision, crash boundary, rebuild, and retention/restore behavior.
 |---|---|---|
 | Old/new reconciliation by property, period, account, unit category, source and revision | Synthetic intake acceptance matrix, exact four-row opening-state parity by stable property/period/account/unit category/source revision, and Oak Ridge NOI bridge: actual `339,150`, budget `353,200`, variance `-14,050`. | No cross-system migration cohort with scoped row-level parity and explained deltas. |
 | Monetary golden expectations | Independent TEST-001 Decimal inputs/output and Oak Ridge arithmetic above. | Broader metrics with per-metric rounding/solver tolerances; realistic cohort volumes. |
-| Fresh install and dependency combinations | Exact four-package merged-SHA clean install, missing/stale adapter refusal, `pip check`; MCP 1.30.0 initialized the installed costmodel server (11 tools) and packaged underwriting server (`plat.underwriting.mcp/1`, three tools) over stdio. | Published artifacts and forward/rollback compatibility matrix after new writes; versioned federated prompt dispatch and actual host proof. |
+| Fresh install and dependency combinations | Exact four-package merged-SHA clean install, missing/stale adapter refusal, `pip check`; MCP 1.30.0 initialized the installed costmodel server (11 tools) and packaged underwriting server (`plat.underwriting.mcp/1`, three tools) over stdio. The installed `engine.backsolve` produced three synthetic artifacts without a sibling checkout. | Published artifacts and forward/rollback compatibility matrix after new writes; versioned federated prompt dispatch and actual host proof. |
 | Overlap, gaps, tombstones, amendments, concurrency, interrupted batches, repeat import, checkpoints | Intake store immutable revision/CAS and durability tests pass in a safe local artifact root. The synthetic opening-state lane detects sequence gaps, keeps a tombstone marker, serializes resume workers, and verifies an interrupted/repeated batch. | Restartable source-of-record migration with scoped watermarks, quarantines, amendments, recoverable source changes, and verified checkpoints against actual source evidence. |
 | Schema upgrades | Intake contract version validation. | Event schema transformation and unsupported-version refusal in the historical ledger. |
 | Pending actions and zero replay effects | Synthetic approved-execution gate and acceptance tests check no model, engine, network, or subprocess calls before authorization. | Durable action IDs/outcomes and outbox; zero external effects during shadow migration/replay; uncertain-outcome reconciliation. |
