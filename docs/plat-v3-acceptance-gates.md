@@ -153,6 +153,11 @@ a shadow migration.
 
 ## Staged release and cutover dossier
 
+The owner-selected public synthetic cohort and grant boundaries, the exact
+fixture hashes, and a fresh 18-test migration/temporal plus 56-test approval
+run are recorded in [the synthetic boundary evidence](plat-v3-synthetic-boundary-evidence.md).
+The actual host and current host-owned resource grants remain unspecified.
+
 1. **Version freeze:** Record merged SHAs, package content pins, adapter
    versions, supported Python/platform matrix, source and target schemas,
    fixtures, and reproducible installation commands.
