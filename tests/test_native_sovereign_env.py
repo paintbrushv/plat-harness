@@ -52,7 +52,7 @@ def test_env_sovereign_env_mismatch_refuses(module_name, tmp_path, monkeypatch):
 
 @pytest.mark.parametrize('module_name', ['native_gate', 'native_dynamic_gate'])
 def test_matching_env_sovereign_env_passes_host_envelope(module_name, tmp_path, monkeypatch):
-    """Configured to this host's own platform.node()/uid, the host check passes.
+    """Model the approved aarch64 host with this host's node and uid.
 
     The gate then proceeds to the approval hash check, which refuses on the
     fake zero digest — proving the host envelope was satisfied on any machine.
@@ -62,6 +62,7 @@ def test_matching_env_sovereign_env_passes_host_envelope(module_name, tmp_path, 
     module = importlib.import_module(f'plat_harness.{module_name}')
     monkeypatch.setenv('PLAT_HARNESS_SOVEREIGN_HOST', platform.node())
     monkeypatch.setenv('PLAT_HARNESS_SOVEREIGN_UID', str(os.getuid()))
+    monkeypatch.setattr(module.platform, 'machine', lambda: 'aarch64')
     gate = module.authorize if module_name == 'native_gate' else module.authorize_candidate
     exc = _refused_host(gate, tmp_path / 'auth.json', '0' * 64,
                         tmp_path / 'manifest.json', tmp_path / 'out')

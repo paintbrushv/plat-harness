@@ -28,18 +28,32 @@ jobs:
       - name: Install core (model-free)
         run: |
           python -m pip install --upgrade pip
-          pip install -e ".[dev]"
-      - name: Core suite (offline, no credentials)
+          pip install -e ".[dev]" build "setuptools>=77" wheel
+      - name: Full Linux core suite (offline, no credentials)
+        if: runner.os == 'Linux'
+        shell: bash
         env:
           PLAT_VENDOR_KEY: ""
           HF_HUB_OFFLINE: "1"
           TRANSFORMERS_OFFLINE: "1"
           CUDA_VISIBLE_DEVICES: ""
         run: |
-          # The store/acceptance layers refuse group/world-writable artifact
-          # paths by design (fail-closed mode gates); run under a private umask.
+          # The store/acceptance layers refuse /tmp and other writable ancestors.
+          install -d -m 700 "$HOME/.plat-harness-ci-tmp"
+          export TMPDIR="$HOME/.plat-harness-ci-tmp"
           umask 0077
-          pytest -p no:cacheprovider -o addopts= -q tests
+          pytest -p no:cacheprovider -o addopts= --basetemp="$TMPDIR/pytest" -q tests
+      - name: Portable contract suite
+        if: runner.os != 'Linux'
+        shell: bash
+        run: |
+          pytest -p no:cacheprovider -o addopts= -q \
+            tests/test_agent_agnostic.py \
+            tests/test_synthetic_read_http.py \
+            tests/test_underwriting_direction.py \
+            tests/test_reasonability.py \
+            tests/test_original_thesis.py \
+            tests/test_test001_review.py
 
   build:
     name: Build sdist + wheel

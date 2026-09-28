@@ -67,7 +67,17 @@ DRIVER = '''
 import os, sys
 from pathlib import Path
 from plat_harness.tool_loop import SYSTEM_PROMPT, tool_schema
+from plat_harness import native_supervisor as supervisor
 from plat_harness.native_supervisor import Store, supervise
+real_snapshot = supervisor.snapshot
+def fake_worker_snapshot(pgid=None):
+    result = real_snapshot(pgid)
+    # These subprocess tests use a CPU fake worker; exercise the protocol on
+    # small CI hosts while direct memory_check tests retain the real limits.
+    result['mem']['MemTotal'] = 128 * 1024**3
+    result['mem']['MemAvailable'] = 120 * 1024**3
+    return result
+supervisor.snapshot = fake_worker_snapshot
 os.umask(0o077)
 store=Store(Path(sys.argv[1]))
 scope={'system_prompt':SYSTEM_PROMPT,'tools':tool_schema(('example_property',)),

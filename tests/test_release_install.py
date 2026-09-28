@@ -185,7 +185,7 @@ def _build_wheel(outdir: Path) -> Path:
     except ImportError:
         pass
     if real_build is not None and real_build.__file__ is not None:
-        cmd = [sys.executable, "-m", "build", "--wheel", "--outdir",
+        cmd = [sys.executable, "-m", "build", "--wheel", "--no-isolation", "--outdir",
                str(outdir), str(REPO_ROOT)]
         env = None
     else:
@@ -528,45 +528,21 @@ def test_clean_install_cli_help_without_model_runtimes(clean_venv):
     assert json.loads(proc.stdout.splitlines()[-1]) == []
 
 
-def test_clean_install_glossary_failure_names_the_env_var(wheel_path):
-    """Fresh installs have no glossary.yaml; the error must say what to set.
-
-    The clean venv is placed OUTSIDE any plat-harness checkout: the installed
-    package's default_glossary_path() walks ancestors looking for
-    docs/glossary.yaml, and a venv created inside a checkout (e.g. pytest's
-    basetemp) would legitimately find the repo's own glossary instead of
-    failing. The no-glossary contract is only meaningful when no ancestor
-    carries one.
-    """
-    import tempfile
-    import venv as _venv
-    external = Path(tempfile.mkdtemp(prefix="plat-harness-glossary-probe-"))
-    try:
-        _venv.create(str(external / "venv"), with_pip=True)
-        subprocess.run(
-            [str(external / "venv" / "bin" / "python"), "-m", "pip", "install",
-             "--quiet", "--disable-pip-version-check", str(wheel_path)],
-            capture_output=True, text=True, timeout=600, env=_clean_env(),
-        )
-        code = (
-            "import json\n"
-            "from plat_harness import load_glossary\n"
-            "try:\n"
-            "    load_glossary()\n"
-            "    print(json.dumps({'ok': True}))\n"
-            "except FileNotFoundError as exc:\n"
-            "    print(json.dumps({'ok': False, 'msg': str(exc)}))\n"
-        )
-        proc = _run(code, external / "venv")
-        payload = json.loads(proc.stdout)
-        assert payload["ok"] is False, (
-            "glossary must not resolve when no ancestor carries docs/glossary.yaml"
-        )
-        assert "PLAT_HARNESS_GLOSSARY" in payload["msg"], (
-            "missing glossary error must point at PLAT_HARNESS_GLOSSARY"
-        )
-    finally:
-        shutil.rmtree(external, ignore_errors=True)
+def test_clean_install_loads_packaged_glossary(clean_venv):
+    """The public wheel supplies the glossary without a source checkout."""
+    code = (
+        "import json\n"
+        "from plat_harness import load_glossary\n"
+        "from plat_harness.glossary import packaged_glossary_text\n"
+        "glossary = load_glossary()\n"
+        "print(json.dumps({'packaged': packaged_glossary_text() is not None, "
+        "'metric_count': len(glossary.metrics)}))\n"
+    )
+    proc = _run(code, clean_venv)
+    assert proc.returncode == 0, proc.stderr
+    payload = json.loads(proc.stdout)
+    assert payload["packaged"] is True
+    assert payload["metric_count"] > 0
 
 
 def test_missing_spreadsheet_extra_returns_actionable_typed_error(clean_venv):

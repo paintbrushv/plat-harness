@@ -49,8 +49,9 @@ def approval_fixture(tmp_path, monkeypatch):
     monkeypatch.setattr(gate.platform,'node',lambda:'explicit-offline-test-host')
     monkeypatch.setattr(gate.platform,'system',lambda:'Linux')
     monkeypatch.setattr(gate.platform,'machine',lambda:'aarch64')
-    monkeypatch.setattr(gate.os,'getuid',lambda:1000)
-    monkeypatch.setenv('PLAT_HARNESS_SOVEREIGN_UID','1000')
+    uid = os.getuid()
+    monkeypatch.setattr(gate.os,'getuid',lambda:uid)
+    monkeypatch.setenv('PLAT_HARNESS_SOVEREIGN_UID',str(uid))
     monkeypatch.setattr(gate,'gpu_processes',lambda:[])
     monkeypatch.setattr(gate.subprocess,'run',lambda *a,**k:SimpleNamespace(stdout='(3, 13)\n5.5.0\n2.11.0+cu130\n'))
     for key,value in gate.CONTROLS.items():

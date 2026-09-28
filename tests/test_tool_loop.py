@@ -70,7 +70,10 @@ def test_offline_synthetic_end_to_end_real_tool_artifact(fixture):
     artifact = config.run_dir / answer["citation"]["artifact"]
     assert hashlib.sha256(artifact.read_bytes()).hexdigest() == answer["citation"]["sha256"]
     assert answer["citation"]["source_artifacts"][0]["sha256"] == hashlib.sha256(csv.read_bytes()).hexdigest()
-    assert "99999" not in json.dumps(result)
+    # The model's draft number cannot become the host-rendered metric. Timing
+    # telemetry contains arbitrary floating-point digits and is not an answer.
+    assert result["rendering"] == "host_artifact_only"
+    assert answer["metric"]["value"] == pytest.approx(1 / 3)
     assert result["timing"]["model_s"] > 0 and result["timing"]["tool_s"] > 0
     for path in config.run_dir.iterdir():
         assert path.stat().st_mode & 0o777 == 0o600
