@@ -30,9 +30,10 @@ the resulting figures. `thesis_to_actual` reads that frozen result and adds
 the later operations NOI without recalculating its historical yield.
 
 The executable rehearsal is `python -m pytest tests/test_temporal_rehearsal.py`.
-Its eleven synthetic tests cover the late August $15,000 expense; a future
+Its twelve synthetic tests cover the late August $15,000 expense; a future
 lease; a linked backdated unit correction; stale stream writers and exact
-reimport; a former user's revoked access to historical facts and reports;
+reimport; a former user's revoked access to historical facts and reports,
+including an identical refusal for absent and unauthorized report IDs;
 an issued thesis beside a later actual; unsupported event-version refusal;
 scoped source identity and equal-amount transactions; date-only and UTC
 offset handling; durable reopen and unsupported store version refusal;

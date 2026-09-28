@@ -21,6 +21,7 @@ from importlib.resources import files
 import json
 import os
 import re
+import subprocess
 import sys
 from dataclasses import replace
 from pathlib import Path
@@ -64,7 +65,7 @@ if not re.fullmatch(r"[0-9a-f]{40}", _harness_commit):
     raise RuntimeError("PLAT_HARNESS_EXPECTED_SHA must name the installed checkout commit")
 
 EXPECTED_SHAS = {
-    "plat-agent": "cc484170e413d9d49c407775fd9e3f9480b24d19",
+    "plat-agent": "a19d726ae8006e3ccbfc6984fcfef0d02abf02e3",
     "plat-harness": _harness_commit,
     "plat-costmodel": COSTMODEL_V1.source_sha,
     "plat-multifamily-underwriting": UNDERWRITING_V2.source_sha,
@@ -102,6 +103,39 @@ def _verify_underwriting_mcp() -> dict[str, object]:
         return {"contract": invalid["adapter_contract"], "ltv": ltv}
     finally:
         client.close()
+
+
+def _verify_installed_backsolve() -> dict[str, object]:
+    fixture = files("plat_agent.lifecycle").joinpath(
+        "fixtures/test001_underwriting_inputs.json"
+    )
+    _check("site-packages" in Path(str(fixture)).resolve().parts,
+           "backsolve fixture came from a source tree")
+    with TemporaryDirectory() as output_dir:
+        completed = subprocess.run(
+            [
+                sys.executable, "-I", "-m", "engine.backsolve",
+                "--canonical-json", str(fixture),
+                "--output-dir", output_dir,
+                "--strategy", "cashflow",
+                "--benchmark-5yr-treasury", "0.04",
+            ],
+            cwd=output_dir, capture_output=True, text=True, timeout=30,
+        )
+        _check(completed.returncode == 0,
+               f"installed backsolve failed: {completed.stderr[-500:]}")
+        output = Path(output_dir)
+        expected_files = {
+            "canonical_backsolved_target_coc.json",
+            "backsolve_summary.json",
+            "underwriting_backsolved_target_coc.json",
+        }
+        _check({path.name for path in output.iterdir()} == expected_files,
+               "installed backsolve artifact set changed")
+        solved = json.loads((output / "canonical_backsolved_target_coc.json").read_text())
+        _check(solved.get("purchase_assumptions", {}).get("purchase_price") == 15133374.99,
+               "installed synthetic backsolve smoke result changed")
+    return {"module": "engine.backsolve", "artifact_count": len(expected_files)}
 
 
 def _verify_opening_install() -> None:
@@ -213,6 +247,7 @@ def main() -> None:
     tool_count = anyio.run(_costmodel_tool_count)
     _check(tool_count == 11, "installed costmodel server tool set changed")
     underwriting_mcp = _verify_underwriting_mcp()
+    installed_backsolve = _verify_installed_backsolve()
     _verify_opening_install()
 
     print(json.dumps({
@@ -223,6 +258,7 @@ def main() -> None:
         "bid_withheld": True,
         "costmodel_mcp_tools": tool_count,
         "underwriting_mcp": underwriting_mcp,
+        "installed_backsolve": installed_backsolve,
         "synthetic_opening_state": "verified",
     }, sort_keys=True))
 

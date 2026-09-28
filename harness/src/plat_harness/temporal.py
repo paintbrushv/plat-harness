@@ -341,14 +341,18 @@ class TemporalLedger:
         )
 
     def as_issued(self, *, actor_id: str, workspace_id: str, report_id: str) -> object:
+        unavailable = "Report is unavailable or unauthorized"
         row = self._db.execute(
             """SELECT aggregate_id, content_json, content_sha256 FROM issued_reports
                WHERE workspace_id=? AND report_id=?""",
             (workspace_id, report_id),
         ).fetchone()
         if row is None:
-            raise TemporalRefusal("Report is unavailable in this workspace")
-        self._permit(actor_id, workspace_id, row[0], "read")
+            raise TemporalRefusal(unavailable)
+        try:
+            self._permit(actor_id, workspace_id, row[0], "read")
+        except TemporalRefusal:
+            raise TemporalRefusal(unavailable) from None
         if sha256(row[1].encode()).hexdigest() != row[2]:
             raise TemporalRefusal("Issued report integrity failed")
         content = json.loads(row[1])
