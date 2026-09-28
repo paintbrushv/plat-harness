@@ -6,8 +6,9 @@ dist/. Mirrors the release-install contract (tests/test_release_install.py):
 a core install must work with no GPU frameworks, model weights, provider
 SDKs, or a checkout of this repository. Verifies: install resolves with the
 pyyaml-only core dep, the package imports inert, all three console scripts
-answer --help, the glossary miss raises the documented typed error naming
-PLAT_HARNESS_GLOSSARY, and a sovereign module stays out of the import graph.
+answer --help, the packaged glossary loads yield_on_cost from the wheel
+with no checkout and no PLAT_HARNESS_GLOSSARY, and a sovereign module stays
+out of the import graph.
 """
 
 from __future__ import annotations
@@ -77,17 +78,22 @@ def main() -> int:
             run([str(exe), "--help"], env=clean_env(), cwd=tmp)
         print("cli-ok")
 
-        # Typed refusal: no glossary in a fresh install → the documented
-        # env var must be named, never a bare traceback.
+        # The wheel ships glossary.yaml. A fresh install outside the checkout
+        # must load yield_on_cost from that package resource.
         run([py, "-I", "-c",
-             "import os\n"
              "from plat_harness import load_glossary\n"
-             "try:\n"
-             "    load_glossary()\n"
-             "    raise SystemExit('glossary unexpectedly resolved')\n"
-             "except FileNotFoundError as e:\n"
-             "    assert 'PLAT_HARNESS_GLOSSARY' in str(e), e\n"
-             "    print('glossary-guard-ok')"], env=clean_env())
+             "glossary = load_glossary()\n"
+             "metric = glossary.get('yield_on_cost')\n"
+             "owner = ''\n"
+             "if metric is not None:\n"
+             "    for item in metric.definitions:\n"
+             "        if item.owner:\n"
+             "            owner = item.owner\n"
+             "            break\n"
+             "expected = 'plat_harness.underwriting_direction.year_2_unlevered_yield_on_cost'\n"
+             "if owner != expected:\n"
+             "    raise SystemExit('packaged glossary missing yield owner: ' + owner)\n"
+             "print('glossary-guard-ok')"], env=clean_env())
 
     print("SMOKE OK")
     return 0
