@@ -10,16 +10,16 @@ was used. The source-of-record remains unchanged.
 
 | Component | Git commit | Role |
 |---|---|---|
-| `plat-harness` | `0964d7c26d93ceeffd6b3bc087c551db79cf6652` | merged temporal assertion and opening-state runtime |
-| `plat-agent` | `7ceb818eae4b8bb50ef8c6986ad72bf1b106f80e` | merged installed-package adapters; main CI passed |
+| `plat-harness` | `f46a94d95e1e0cf7c314dac2ac9b485b972889bd` | merged temporal assertion/opening runtime and installed verifier; main CI passed |
+| `plat-agent` | `cc484170e413d9d49c407775fd9e3f9480b24d19` | merged installed-package, MCP, and explicit deal-data adapters; main CI passed |
 | `plat-costmodel` | `518142ecb8771e52fcc9985237fe1a6f97a76168` | reviewed cost package |
-| `plat-multifamily-underwriting` | `0d106d601e6ae989d6942b424f8cd9b7b1173576` | reviewed engine package |
+| `plat-multifamily-underwriting` | `10a88ed393e6d6611c8c710b5e15ef64e128af6b` | reviewed engine 0.1.1 and packaged MCP adapter; seven-job main CI passed |
 | `plat-operations` | `171eb9622f53fe9d6b9703191d5a6832064100ed` | public Oak Ridge fixture |
 
 An independent clean environment installed wheels built from these exact
-merged SHAs, with `PYTHONPATH` and sibling path variables unset. The harness
-wheel came from `git archive` of `0964d7c26d93ceeffd6b3bc087c551db79cf6652`;
-the other three wheel hashes matched the previously reviewed archives.
+merged SHAs, with `PYTHONPATH`, sibling path variables, host MCP command
+overrides, and the deal-data-root override unset. All four wheels came from
+`git archive` of the exact commits above, including current harness main.
 `python -I`
 loaded all four projects from site-packages, verified both producer content
 pins and mismatch refusal, and reproduced TEST-001 year-two unlevered NOI
@@ -27,25 +27,31 @@ pins and mismatch refusal, and reproduced TEST-001 year-two unlevered NOI
 total capex `1,758,150`, yield on cost
 `0.06811800906400841517484098662`, and a withheld bid. The packaged
 TEST-001 deal fixture loaded, direct underwriting/scenario/agency adapters
-worked, the installed costmodel MCP server returned 11 tools, and `pip check`
-passed. The installed harness temporal/opening modules imported from
+worked, the installed costmodel MCP server returned 11 tools, and the
+installed `plat.underwriting.mcp/1` server returned validation, summary, and
+feasibility over stdio with LTV `0.65`. `pip check` passed. The installed
+harness temporal/opening modules imported from
 site-packages and completed a one-row observed opening import with exact-cent
 parity, no later-date carry-forward, and a refused unauthorized historical
-read. Agent main CI passed on the exact merged SHA. The prior agent baseline
-was `4fe082a13600c59c3de7754281ee3e69ac1df94f`; that version required
-sibling source paths for this synthetic calculation. The prior harness runtime
-baseline was `aa7f8653090fc1e1393b72b4c155c49af44116db`; it did not
-contain the temporal/opening modules.
+read. Agent and underwriting main CI passed on the exact merged SHAs. The
+previous installed integration set used agent `7ceb818` and underwriting
+`0d106d6`; the new set removes the default underwriting MCP source-checkout
+requirement. Federated prompt dispatch still needs versioned prompt assets
+and an actual host validation.
 
 Observed wheel SHA-256 values from `git archive` of the tabled commits,
 followed by `python -m pip wheel --no-deps --no-build-isolation`:
 
 | Wheel | SHA-256 |
 |---|---|
-| `plat_agent-0.1.0-py3-none-any.whl` | `f87e5152f1a484fd4b33e416d64dd0cd5a3abb0baa3a8bdcfdd9bb1c4309ab5a` |
-| `plat_costmodel-0.1.0-py3-none-any.whl` | `e0ee25035d065241303d030d0d4fc409f676055324029d6b288d9974c6272a49` |
-| `plat_harness-0.1.0-py3-none-any.whl` | `36ca0cc824da72be8b56fb312d6afc024e5d346f7e5d3db547a2a25c618cf8b4` |
-| `plat_multifamily_underwriting-0.1.0-py3-none-any.whl` | `274d7afd527fc4e63481b41e3c6003322ec5dfbf611b211060fe2d03106b75e1` |
+| `plat_agent-0.1.0-py3-none-any.whl` | `9c8674dd4cee2f0e42dbbf35561939a1131ac82671391b4826b42fb07595589b` |
+| `plat_costmodel-0.1.0-py3-none-any.whl` | `8b72ec463da82bb41dbd38fb97e035d712e403bede0c3ed19b665bb648156fb0` |
+| `plat_harness-0.1.0-py3-none-any.whl` | `abc4b766660b45ae4b6e13ecba1c7652e53eebaf50abeed7ee23697f5ceabdc1` |
+| `plat_multifamily_underwriting-0.1.1-py3-none-any.whl` | `1157b4155b0628169e5319f08d2acf427f15b02229b745fad2988eb3af45ae60` |
+
+These are observed build-file hashes, not a claim of byte-for-byte
+reproducible wheels. The costmodel wheel bytes differed from the prior build
+of the same Git commit; its installed source-content pin still matched.
 
 The install check used a new Python 3.14 environment:
 
@@ -55,21 +61,20 @@ python3 -m venv <clean-env>
 <clean-env>/bin/python -m pip check
 env -u PYTHONPATH -u PLAT_COSTMODEL_PATH -u PLAT_COSTMODEL_DEFERRED_PATH \
     -u PLAT_MULTIFAMILY_UNDERWRITING_PATH -u UNDERWRITING_ENGINE_PATH \
+    -u PLAT_DEALS_ROOT -u UNDERWRITING_MCP_CMD -u PLAT_COSTMODEL_CMD \
     <clean-env>/bin/python -I scripts/verify_public_install.py
 ```
 
 The committed script asserts site-packages origins, adapter version/content
 pins and stale-content refusal, direct underwriting/scenario/agency imports,
 TEST-001 economics and withheld bid, packaged deal fixture loading, and a
-bounded isolated local stdio handshake with the costmodel server. It now also
+bounded local stdio handshakes with both installed producer servers. It also
 checks the installed opening-state import, scoped historical read refusal,
 and absence of forward-filled opening values.
 The `V3 public integration` GitHub workflow repeats the installed-package
 script on Python 3.12 at the exact SHAs above; its hosted result is a
-separate gate from this VPS observation. The first local invocation under a
-restricted process sandbox timed out at the MCP handshake. The same clean
-environment completed the isolated script once local subprocess/socket access
-was allowed.
+separate gate from this VPS observation. The current clean environment
+completed the isolated script with local subprocess/socket access.
 
 ## Section 13: temporal and replay acceptance
 
@@ -104,13 +109,13 @@ budget revision, crash boundary, rebuild, and retention/restore behavior.
 |---|---|---|
 | Old/new reconciliation by property, period, account, unit category, source and revision | Synthetic intake acceptance matrix, exact four-row opening-state parity by stable property/period/account/unit category/source revision, and Oak Ridge NOI bridge: actual `339,150`, budget `353,200`, variance `-14,050`. | No cross-system migration cohort with scoped row-level parity and explained deltas. |
 | Monetary golden expectations | Independent TEST-001 Decimal inputs/output and Oak Ridge arithmetic above. | Broader metrics with per-metric rounding/solver tolerances; realistic cohort volumes. |
-| Fresh install and dependency combinations | Exact four-package merged-SHA clean install, missing/stale adapter refusal, `pip check`; MCP 1.30.0 locally initialized the installed costmodel server and listed 11 tools over stdio. | Published versioned producer contracts; forward/rollback compatibility matrix after new writes; packaged underwriting server/agent-prompt dispatch. |
+| Fresh install and dependency combinations | Exact four-package merged-SHA clean install, missing/stale adapter refusal, `pip check`; MCP 1.30.0 initialized the installed costmodel server (11 tools) and packaged underwriting server (`plat.underwriting.mcp/1`, three tools) over stdio. | Published artifacts and forward/rollback compatibility matrix after new writes; versioned federated prompt dispatch and actual host proof. |
 | Overlap, gaps, tombstones, amendments, concurrency, interrupted batches, repeat import, checkpoints | Intake store immutable revision/CAS and durability tests pass in a safe local artifact root. The synthetic opening-state lane detects sequence gaps, keeps a tombstone marker, serializes resume workers, and verifies an interrupted/repeated batch. | Restartable source-of-record migration with scoped watermarks, quarantines, amendments, recoverable source changes, and verified checkpoints against actual source evidence. |
 | Schema upgrades | Intake contract version validation. | Event schema transformation and unsupported-version refusal in the historical ledger. |
 | Pending actions and zero replay effects | Synthetic approved-execution gate and acceptance tests check no model, engine, network, or subprocess calls before authorization. | Durable action IDs/outcomes and outbox; zero external effects during shadow migration/replay; uncertain-outcome reconciliation. |
 | Cross-workspace authorization and redaction | Protocol-level HTTP client returns `403` for unauthorized scope; approval registry is reloaded for synthetic execution/readback. | Actual host identity and tenant policy, historical access after revocation, backup/restore redaction, leakage checks. |
 | Acquisition, operations, thesis-to-actual | TEST-001 acquisition and frozen thesis, Oak Ridge operations variance, and synthetic read connector pass separately. | One integrated temporal workflow with an original thesis, later actual, and current authorization across the same stable entity IDs. |
-| Resource/correction measures | Candidate agent wheel suite with MCP 1.x: `883 passed, 11 skipped` in `12.62s`; 384 selected harness intake/auth/read tests passed in an isolated safe artifact root. | Realistic synthetic migration volume, replay time and peak resource use, freshness/watermark lag, correction burden and recovery-time observations. |
+| Resource/correction measures | Agent full local suite on the new producer: `887 passed, 11 skipped` in `12.99s`; underwriting full local suite: `819 passed, 24 skipped` in `16.97s`. Its seven-job merged-main matrix passed after repairing prior CI failures. The prior 384 selected harness intake/auth/read tests passed in an isolated safe artifact root. | Realistic synthetic migration volume, replay time and peak resource use, freshness/watermark lag, correction burden and recovery-time observations. |
 
 The [opening-state rehearsal](plat-v3-opening-state-rehearsal.md) is a pure
 dry-run plan plus a bounded local synthetic importer. Six tests verify exact
