@@ -5,6 +5,7 @@ Run from a new environment with the four pinned wheels installed:
     env -u PYTHONPATH -u PLAT_COSTMODEL_PATH -u PLAT_COSTMODEL_DEFERRED_PATH \
       -u PLAT_MULTIFAMILY_UNDERWRITING_PATH -u UNDERWRITING_ENGINE_PATH \
       -u PLAT_DEALS_ROOT -u UNDERWRITING_MCP_CMD -u PLAT_COSTMODEL_CMD \
+      PLAT_HARNESS_EXPECTED_SHA=<exact installed checkout commit> \
       python -I scripts/verify_public_install.py
 
 This is a synthetic integration check, not a live migration or host test.
@@ -19,6 +20,7 @@ import importlib.metadata
 from importlib.resources import files
 import json
 import os
+import re
 import sys
 from dataclasses import replace
 from pathlib import Path
@@ -57,9 +59,13 @@ from plat_agent.sweep.perturb import get_preset_family
 from plat_agent.underwriting_client import UnderwritingClient
 
 
+_harness_commit = os.environ.get("PLAT_HARNESS_EXPECTED_SHA", "")
+if not re.fullmatch(r"[0-9a-f]{40}", _harness_commit):
+    raise RuntimeError("PLAT_HARNESS_EXPECTED_SHA must name the installed checkout commit")
+
 EXPECTED_SHAS = {
     "plat-agent": "cc484170e413d9d49c407775fd9e3f9480b24d19",
-    "plat-harness": "f46a94d95e1e0cf7c314dac2ac9b485b972889bd",
+    "plat-harness": _harness_commit,
     "plat-costmodel": COSTMODEL_V1.source_sha,
     "plat-multifamily-underwriting": UNDERWRITING_V2.source_sha,
 }
