@@ -134,6 +134,20 @@ def test_current_authorization_controls_historical_reads(tmp_path):
                               report_id="other-deal")
 
 
+def test_revoked_reader_cannot_probe_issued_report_existence(tmp_path):
+    host = Host(tmp_path / "temporal.sqlite")
+    host.ledger.issue_report(
+        actor_id="analyst", workspace_id="alpha", aggregate_id="deal-1",
+        report_id="issued", content={"noi": "100000"},
+    )
+    host.grants.remove(("analyst", "alpha", "deal-1", "read"))
+    with pytest.raises(TemporalRefusal) as existing:
+        host.ledger.as_issued(actor_id="analyst", workspace_id="alpha", report_id="issued")
+    with pytest.raises(TemporalRefusal) as absent:
+        host.ledger.as_issued(actor_id="analyst", workspace_id="alpha", report_id="absent")
+    assert str(existing.value) == str(absent.value)
+
+
 def test_original_thesis_to_later_actual_keeps_frozen_economics(tmp_path):
     host = Host(tmp_path / "temporal.sqlite")
     host.ledger.issue_original_thesis(
