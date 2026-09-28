@@ -4,6 +4,7 @@ Run from a new environment with the four pinned wheels installed:
 
     env -u PYTHONPATH -u PLAT_COSTMODEL_PATH -u PLAT_COSTMODEL_DEFERRED_PATH \
       -u PLAT_MULTIFAMILY_UNDERWRITING_PATH -u UNDERWRITING_ENGINE_PATH \
+      -u PLAT_DEALS_ROOT -u UNDERWRITING_MCP_CMD -u PLAT_COSTMODEL_CMD \
       python -I scripts/verify_public_install.py
 
 This is a synthetic integration check, not a live migration or host test.
@@ -15,6 +16,7 @@ import asyncio
 from datetime import date, datetime, timezone
 from hashlib import sha256
 import importlib.metadata
+from importlib.resources import files
 import json
 import os
 import sys
@@ -28,6 +30,9 @@ _PATH_VARIABLES = (
     "PLAT_COSTMODEL_DEFERRED_PATH",
     "PLAT_MULTIFAMILY_UNDERWRITING_PATH",
     "UNDERWRITING_ENGINE_PATH",
+    "PLAT_DEALS_ROOT",
+    "UNDERWRITING_MCP_CMD",
+    "PLAT_COSTMODEL_CMD",
 )
 if not sys.flags.isolated or any(os.environ.get(name) for name in _PATH_VARIABLES):
     raise RuntimeError("run with python -I and all sibling path variables unset")
@@ -46,17 +51,17 @@ from plat_agent.lifecycle.synthetic_interior_scope import (
     interior_plus_synthetic_roof_yield,
     record_test001_thesis,
 )
-from plat_agent.lifecycle.versioned_adapters import COSTMODEL_V1, UNDERWRITING_V1
+from plat_agent.lifecycle.versioned_adapters import COSTMODEL_V1, UNDERWRITING_V2
 from plat_agent.orchestrator.tools import load_deal_inputs_tool
 from plat_agent.sweep.perturb import get_preset_family
 from plat_agent.underwriting_client import UnderwritingClient
 
 
 EXPECTED_SHAS = {
-    "plat-agent": "7ceb818eae4b8bb50ef8c6986ad72bf1b106f80e",
-    "plat-harness": "0964d7c26d93ceeffd6b3bc087c551db79cf6652",
+    "plat-agent": "cc484170e413d9d49c407775fd9e3f9480b24d19",
+    "plat-harness": "f46a94d95e1e0cf7c314dac2ac9b485b972889bd",
     "plat-costmodel": COSTMODEL_V1.source_sha,
-    "plat-multifamily-underwriting": UNDERWRITING_V1.source_sha,
+    "plat-multifamily-underwriting": UNDERWRITING_V2.source_sha,
 }
 def _check(condition: bool, message: str) -> None:
     if not condition:
@@ -70,6 +75,27 @@ async def _costmodel_tool_count() -> int:
             async with ClientSession(read, write) as session:
                 await session.initialize()
                 return len((await session.list_tools()).tools)
+
+
+def _verify_underwriting_mcp() -> dict[str, object]:
+    client = UnderwritingClient()
+    _check(client._server_params.cwd is None, "underwriting MCP used a source cwd")
+    try:
+        invalid = client.validate({})
+        _check(invalid.get("status") == "FAIL", "underwriting MCP did not refuse empty inputs")
+        _check(invalid.get("adapter_contract") == "plat.underwriting.mcp/1", "underwriting MCP contract changed")
+        fixture = json.loads(files("plat_agent.lifecycle").joinpath(
+            "fixtures/test001_underwriting_inputs.json"
+        ).read_text(encoding="utf-8"))
+        summary = client.run_summary(fixture)
+        _check(summary.get("status") == "success" and "cashflow" not in summary,
+               "installed underwriting MCP summary changed")
+        feasibility = client.check_feasibility(fixture)
+        ltv = feasibility.get("gates", {}).get("ltv", {}).get("actual")
+        _check(ltv == 0.65, "installed underwriting MCP LTV changed")
+        return {"contract": invalid["adapter_contract"], "ltv": ltv}
+    finally:
+        client.close()
 
 
 def _verify_opening_install() -> None:
@@ -144,12 +170,13 @@ def main() -> None:
         ("plat-costmodel", plat_costmodel),
         ("plat-multifamily-underwriting", engine),
     ):
-        _check(importlib.metadata.version(package) == "0.1.0", f"unexpected {package} version")
+        expected_version = "0.1.1" if package == "plat-multifamily-underwriting" else "0.1.0"
+        _check(importlib.metadata.version(package) == expected_version, f"unexpected {package} version")
         _check("site-packages" in Path(module.__file__).resolve().parts, f"{package} came from a source tree")
 
     COSTMODEL_V1.verify()
-    UNDERWRITING_V1.verify()
-    for contract in (COSTMODEL_V1, UNDERWRITING_V1):
+    UNDERWRITING_V2.verify()
+    for contract in (COSTMODEL_V1, UNDERWRITING_V2):
         try:
             replace(contract, content_sha256="0" * 64).verify()
         except RuntimeError as exc:
@@ -157,7 +184,7 @@ def main() -> None:
         else:
             raise AssertionError(f"{contract.distribution} accepted a stale content pin")
 
-    _check(UnderwritingClient(mcp_command=["unused"])._import_engine_api().__module__ == "engine.api", "wrong direct engine")
+    _check(UnderwritingClient()._import_engine_api().__module__ == "engine.api", "wrong direct engine")
     _check(bool(get_preset_family("stabilized")), "scenario presets missing")
     _check(_ensure_agency_sizer(), "reviewed agency sizer missing")
 
@@ -179,6 +206,7 @@ def main() -> None:
     _check(json.loads(loaded["content"][0]["text"])["inputs"]["metadata"]["deal_id"] == "TEST-001", "wrong packaged deal")
     tool_count = anyio.run(_costmodel_tool_count)
     _check(tool_count == 11, "installed costmodel server tool set changed")
+    underwriting_mcp = _verify_underwriting_mcp()
     _verify_opening_install()
 
     print(json.dumps({
@@ -188,6 +216,7 @@ def main() -> None:
         "result": result.as_dict(),
         "bid_withheld": True,
         "costmodel_mcp_tools": tool_count,
+        "underwriting_mcp": underwriting_mcp,
         "synthetic_opening_state": "verified",
     }, sort_keys=True))
 
