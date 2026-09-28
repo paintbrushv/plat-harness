@@ -23,7 +23,7 @@ jobs:
           python -m pip install "git+https://github.com/paintbrushv/plat-agent.git@7ceb818eae4b8bb50ef8c6986ad72bf1b106f80e"
           python -m pip install "git+https://github.com/paintbrushv/plat-costmodel.git@518142ecb8771e52fcc9985237fe1a6f97a76168"
           python -m pip install "git+https://github.com/paintbrushv/plat-multifamily-underwriting.git@0d106d601e6ae989d6942b424f8cd9b7b1173576"
-          python -m pip install "git+https://github.com/paintbrushv/plat-harness.git@aa7f8653090fc1e1393b72b4c155c49af44116db"
+          python -m pip install "git+https://github.com/paintbrushv/plat-harness.git@0964d7c26d93ceeffd6b3bc087c551db79cf6652"
           python -m pip check
       - name: Verify isolated installed-package integration
         run: |
