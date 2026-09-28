@@ -85,7 +85,7 @@ plat-ops = "plat_harness.cli_ops:main"
 where = ["harness/src"]
 
 [tool.setuptools.package-data]
-plat_harness = ["py.typed", "samples_data/*"]
+plat_harness = ["py.typed", "samples_data/*", "glossary.yaml"]
 
 [project.urls]
 Homepage = "https://github.com/paintbrushv/plat-harness"

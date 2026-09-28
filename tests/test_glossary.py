@@ -32,6 +32,16 @@ def test_eighteen_tools_registered() -> None:
     assert names[-1] == "fetch_trace"
 
 
+def test_glossary_yaml_is_packaged() -> None:
+    from plat_harness.glossary import packaged_glossary_text
+
+    packaged = packaged_glossary_text()
+    assert packaged is not None
+    docs = Path(__file__).resolve().parents[1].joinpath("docs", "glossary.yaml").read_text(encoding="utf-8")
+    assert packaged == docs
+    assert "year_2_unlevered_noi / (purchase_price + capex)" in packaged
+
+
 def test_load_glossary_round_trip() -> None:
     loaded = load_glossary()
     assert loaded.version

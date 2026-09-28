@@ -1,9 +1,10 @@
-"""Load docs/glossary.yaml. CONFLICT rows must not be averaged."""
+"""Load the packaged glossary.yaml. CONFLICT rows must not be averaged."""
 
 from __future__ import annotations
 
 import os
 from dataclasses import dataclass
+from importlib.resources import files
 from pathlib import Path
 from typing import Any, Iterator
 
@@ -69,10 +70,21 @@ class Glossary:
         return iter(self.metrics.values())
 
 
+def packaged_glossary_text() -> str | None:
+    """Glossary bytes shipped inside the plat_harness package."""
+    resource = files("plat_harness").joinpath("glossary.yaml")
+    if not resource.is_file():
+        return None
+    return resource.read_text(encoding="utf-8")
+
+
 def default_glossary_path() -> Path:
     env = os.environ.get("PLAT_HARNESS_GLOSSARY")
     if env:
         return Path(env)
+    sibling = Path(__file__).resolve().parent / "glossary.yaml"
+    if sibling.is_file():
+        return sibling
     here = Path(__file__).resolve()
     candidates: list[Path] = []
     # harness/src/plat_harness/glossary.py → repo root / docs/glossary.yaml
@@ -84,7 +96,7 @@ def default_glossary_path() -> Path:
         candidates.append(here.parents[2] / "docs" / "glossary.yaml")
     except IndexError:
         pass
-    # Installed-package fallback: next to this file is useless; walk parents.
+    # Source checkout without the packaged sibling: walk up to docs/glossary.yaml.
     for parent in here.parents:
         candidates.append(parent / "docs" / "glossary.yaml")
     seen: set[Path] = set()
@@ -101,11 +113,9 @@ def default_glossary_path() -> Path:
 
 
 def load_glossary(path: Path | None = None) -> Glossary:
-    glossary_path = path or default_glossary_path()
-    with glossary_path.open(encoding="utf-8") as handle:
-        raw = yaml.safe_load(handle)
+    origin, raw = _read_glossary(path)
     if not isinstance(raw, dict) or "metrics" not in raw:
-        raise ValueError(f"Invalid glossary at {glossary_path}")
+        raise ValueError(f"Invalid glossary at {origin}")
     metrics: dict[str, Metric] = {}
     for metric_id, body in (raw.get("metrics") or {}).items():
         if not isinstance(body, dict):
@@ -141,6 +151,19 @@ def load_glossary(path: Path | None = None) -> Glossary:
         metrics=metrics,
         raw=raw,
     )
+
+
+def _read_glossary(path: Path | None) -> tuple[str, Any]:
+    if path is not None:
+        return str(path), yaml.safe_load(path.read_text(encoding="utf-8"))
+    env = os.environ.get("PLAT_HARNESS_GLOSSARY")
+    if env:
+        return env, yaml.safe_load(Path(env).read_text(encoding="utf-8"))
+    packaged = packaged_glossary_text()
+    if packaged is not None:
+        return "plat_harness/glossary.yaml", yaml.safe_load(packaged)
+    glossary_path = default_glossary_path()
+    return str(glossary_path), yaml.safe_load(glossary_path.read_text(encoding="utf-8"))
 
 
 def _opt_str(value: object) -> str | None:
