@@ -55,8 +55,9 @@ def candidate_approval_fixture(tmp_path, monkeypatch):
     monkeypatch.setattr(gate.platform, "node", lambda: "explicit-offline-test-host")
     monkeypatch.setattr(gate.platform, "system", lambda: "Linux")
     monkeypatch.setattr(gate.platform, "machine", lambda: "aarch64")
-    monkeypatch.setattr(gate.os, "getuid", lambda: 1000)
-    monkeypatch.setenv("PLAT_HARNESS_SOVEREIGN_UID", "1000")
+    uid = os.getuid()
+    monkeypatch.setattr(gate.os, "getuid", lambda: uid)
+    monkeypatch.setenv("PLAT_HARNESS_SOVEREIGN_UID", str(uid))
     monkeypatch.setattr(gate, "gpu_processes", lambda: [])
     monkeypatch.setenv("PLAT_HARNESS_RUNTIME", "/EXPLICIT_FAKE_RUNTIME")
     monkeypatch.setenv("PLAT_HARNESS_SITE_PACKAGES", "/EXPLICIT_FAKE_SITE_PACKAGES")
@@ -178,6 +179,7 @@ def test_candidate_gate_prohibits_production_launch_without_human_approval(tmp_p
     # Production entrypoint must refuse when called with unapproved file
     monkeypatch.setenv("PLAT_HARNESS_SOVEREIGN_HOST", platform.node())
     monkeypatch.setenv("PLAT_HARNESS_SOVEREIGN_UID", str(os.getuid()))
+    monkeypatch.setattr(gate.platform, "machine", lambda: "aarch64")
     auth_file = tmp_path / "unapproved_auth.json"
     auth_file.write_text(json.dumps({"approved": False, "approval_kind": "unapproved"}))
     auth_file.chmod(0o600)

@@ -4,10 +4,14 @@ from __future__ import annotations
 
 import ast
 import shutil
-import tomllib
 from pathlib import Path
 
 import pytest
+
+try:
+    import tomllib
+except ModuleNotFoundError:  # Python 3.10
+    import tomli as tomllib
 
 from plat_harness.errors import HarnessError
 from plat_harness.models import ModelRouter, NullModel
