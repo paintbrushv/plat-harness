@@ -10,14 +10,17 @@ was used. The source-of-record remains unchanged.
 
 | Component | Git commit | Role |
 |---|---|---|
-| `plat-harness` | `aa7f8653090fc1e1393b72b4c155c49af44116db` | merged public harness baseline |
+| `plat-harness` | `0964d7c26d93ceeffd6b3bc087c551db79cf6652` | merged temporal assertion and opening-state runtime |
 | `plat-agent` | `7ceb818eae4b8bb50ef8c6986ad72bf1b106f80e` | merged installed-package adapters; main CI passed |
 | `plat-costmodel` | `518142ecb8771e52fcc9985237fe1a6f97a76168` | reviewed cost package |
 | `plat-multifamily-underwriting` | `0d106d601e6ae989d6942b424f8cd9b7b1173576` | reviewed engine package |
 | `plat-operations` | `171eb9622f53fe9d6b9703191d5a6832064100ed` | public Oak Ridge fixture |
 
 An independent clean environment installed wheels built from these exact
-merged SHAs, with `PYTHONPATH` and sibling path variables unset. `python -I`
+merged SHAs, with `PYTHONPATH` and sibling path variables unset. The harness
+wheel came from `git archive` of `0964d7c26d93ceeffd6b3bc087c551db79cf6652`;
+the other three wheel hashes matched the previously reviewed archives.
+`python -I`
 loaded all four projects from site-packages, verified both producer content
 pins and mismatch refusal, and reproduced TEST-001 year-two unlevered NOI
 `1,039,354.8`, interior capex `1,358,150`, synthetic roof capex `400,000`,
@@ -25,9 +28,14 @@ total capex `1,758,150`, yield on cost
 `0.06811800906400841517484098662`, and a withheld bid. The packaged
 TEST-001 deal fixture loaded, direct underwriting/scenario/agency adapters
 worked, the installed costmodel MCP server returned 11 tools, and `pip check`
-passed. Agent main CI passed on the exact merged SHA. The prior agent baseline
+passed. The installed harness temporal/opening modules imported from
+site-packages and completed a one-row observed opening import with exact-cent
+parity, no later-date carry-forward, and a refused unauthorized historical
+read. Agent main CI passed on the exact merged SHA. The prior agent baseline
 was `4fe082a13600c59c3de7754281ee3e69ac1df94f`; that version required
-sibling source paths for this synthetic calculation.
+sibling source paths for this synthetic calculation. The prior harness runtime
+baseline was `aa7f8653090fc1e1393b72b4c155c49af44116db`; it did not
+contain the temporal/opening modules.
 
 Observed wheel SHA-256 values from `git archive` of the tabled commits,
 followed by `python -m pip wheel --no-deps --no-build-isolation`:
@@ -36,7 +44,7 @@ followed by `python -m pip wheel --no-deps --no-build-isolation`:
 |---|---|
 | `plat_agent-0.1.0-py3-none-any.whl` | `f87e5152f1a484fd4b33e416d64dd0cd5a3abb0baa3a8bdcfdd9bb1c4309ab5a` |
 | `plat_costmodel-0.1.0-py3-none-any.whl` | `e0ee25035d065241303d030d0d4fc409f676055324029d6b288d9974c6272a49` |
-| `plat_harness-0.1.0-py3-none-any.whl` | `f56c79b73f81da2b5aa8bb056752b4b4dedefa1ec3a918e309f979111e42b781` |
+| `plat_harness-0.1.0-py3-none-any.whl` | `36ca0cc824da72be8b56fb312d6afc024e5d346f7e5d3db547a2a25c618cf8b4` |
 | `plat_multifamily_underwriting-0.1.0-py3-none-any.whl` | `274d7afd527fc4e63481b41e3c6003322ec5dfbf611b211060fe2d03106b75e1` |
 
 The install check used a new Python 3.14 environment:
@@ -53,10 +61,15 @@ env -u PYTHONPATH -u PLAT_COSTMODEL_PATH -u PLAT_COSTMODEL_DEFERRED_PATH \
 The committed script asserts site-packages origins, adapter version/content
 pins and stale-content refusal, direct underwriting/scenario/agency imports,
 TEST-001 economics and withheld bid, packaged deal fixture loading, and a
-bounded isolated local stdio handshake with the costmodel server.
+bounded isolated local stdio handshake with the costmodel server. It now also
+checks the installed opening-state import, scoped historical read refusal,
+and absence of forward-filled opening values.
 The `V3 public integration` GitHub workflow repeats the installed-package
 script on Python 3.12 at the exact SHAs above; its hosted result is a
-separate gate from this VPS observation.
+separate gate from this VPS observation. The first local invocation under a
+restricted process sandbox timed out at the MCP handshake. The same clean
+environment completed the isolated script once local subprocess/socket access
+was allowed.
 
 ## Section 13: temporal and replay acceptance
 
