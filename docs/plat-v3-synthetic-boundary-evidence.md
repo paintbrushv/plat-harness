@@ -4,7 +4,9 @@ The owner selected the public synthetic four-row fixture for the next
 migration rehearsal and synthetic grants for the current access tests. This
 selection authorizes only a disposable synthetic run. It supplies neither a
 sanitized legacy source cohort nor a current host-owned workspace/deal grant
-registry. An actual host and test identity have not yet been selected.
+registry. The first available execution host for a synthetic package smoke
+check was this Codex desktop session on the VPS. No host-owned test identity
+or resource-grant source has been selected.
 
 ## Exact boundary and version set
 
@@ -17,7 +19,8 @@ registry. An actual host and test identity have not yet been selected.
 | Stable-ID map | `legacy-A → prop-101`, `legacy-B → prop-202`; SHA-256 `d42322594fcda703bde3502bd2837876d95a342c5841adaafe45420c05f1aa77` |
 | Synthetic resource grants | `tests/test_temporal_rehearsal.py::Host.grants` and `tests/test_opening_migration.py::ledger` authorization callbacks; these are test-owned, in-memory grants |
 | Synthetic contracts approvals | Host-pinned fixture file made by `tests/test_approved_execution.py::host_env`, loaded by `review_bridge.host_registry` using `PLAT_HARNESS_CONTRACT_REGISTRY_PATH` and `PLAT_HARNESS_CONTRACT_REGISTRY_SHA256` |
-| Actual host/grant source | Unspecified. The contracts approval registry and the resource-grant callbacks are different authorities. Neither is a current real-host grant source. |
+| First available execution host | Codex desktop invoking the installed verifier through the VPS local shell; this tests local subprocess and installed-package behavior, not host identity binding or an app connector. |
+| Actual host grant source | Unspecified. The contracts approval registry and the resource-grant callbacks are different authorities. Neither is a current real-host grant source. |
 
 The four expected rows are August residential revenue `200000.00` and
 expense `-100000.00` for `prop-101`, August commercial revenue `30000.00` for
@@ -45,6 +48,17 @@ temporary directory was removed. No original checkout content or worktree
 reference was changed. The test suite used its configured `harness/src`
 source path; the separate exact-SHA installed-wheel check is recorded in
 `plat-v3-acceptance-gates.md`.
+
+The exact merged-wheel verifier was also invoked from this Codex desktop
+session with `PYTHONPATH` and all sibling/host command overrides unset and
+`PLAT_HARNESS_EXPECTED_SHA=53fc98d066b7a467ae611924eca541cd7474a819`.
+It timed out while starting the costmodel MCP process inside the restricted
+process sandbox. The identical invocation outside that sandbox passed in
+6.6 seconds: both installed MCP servers responded, costmodel listed 11 tools,
+installed backsolve made three synthetic artifacts, TEST-001 withheld the bid,
+and the synthetic opening-state check passed. This establishes the local
+Codex shell execution path with that permission profile only. It does not
+bind a Codex or other host user to current PLAT resource grants.
 
 These tests cover exact-cent row groups and source/revision identity,
 missing mappings, gaps, tombstone/null precision, bounded restart after an
