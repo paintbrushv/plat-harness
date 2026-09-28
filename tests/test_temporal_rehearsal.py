@@ -19,10 +19,13 @@ def instant(day: int) -> datetime:
 class Host:
     def __init__(self, path):
         self.now = instant(1)
-        self.grants = {("analyst", "alpha", "read"), ("analyst", "alpha", "write")}
+        self.grants = {
+            ("analyst", "alpha", "deal-1", "read"),
+            ("analyst", "alpha", "deal-1", "write"),
+        }
         self.ledger = TemporalLedger(
-            str(path), authorize=lambda actor, workspace, action: (
-                actor, workspace, action
+            str(path), authorize=lambda actor, workspace, aggregate, action: (
+                actor, workspace, aggregate, action
             ) in self.grants, clock=lambda: self.now,
         )
 
@@ -108,7 +111,7 @@ def test_current_authorization_controls_historical_reads(tmp_path):
     query = dict(actor_id="analyst", workspace_id="alpha", aggregate_id="deal-1",
                  effective_at=date(2026, 8, 1), known_at=instant(10))
     assert host.ledger.as_known(**query)["operations_noi_base"] == "100000"
-    host.grants.remove(("analyst", "alpha", "read"))
+    host.grants.remove(("analyst", "alpha", "deal-1", "read"))
     with pytest.raises(TemporalRefusal):
         host.ledger.as_known(**query)
     with pytest.raises(TemporalRefusal):
@@ -117,6 +120,18 @@ def test_current_authorization_controls_historical_reads(tmp_path):
         host.ledger.as_known(actor_id="analyst", workspace_id="other",
                              aggregate_id="deal-1", effective_at=date(2026, 8, 1),
                              known_at=instant(10))
+    host.grants.add(("analyst", "alpha", "deal-1", "read"))
+    with pytest.raises(TemporalRefusal):
+        host.ledger.as_known(actor_id="analyst", workspace_id="alpha",
+                             aggregate_id="deal-2", effective_at=date(2026, 8, 1),
+                             known_at=instant(10))
+    host.grants.add(("analyst", "alpha", "deal-2", "write"))
+    host.ledger.issue_report(actor_id="analyst", workspace_id="alpha",
+                             aggregate_id="deal-2", report_id="other-deal",
+                             content={"noi": "200000"})
+    with pytest.raises(TemporalRefusal):
+        host.ledger.as_issued(actor_id="analyst", workspace_id="alpha",
+                              report_id="other-deal")
 
 
 def test_original_thesis_to_later_actual_keeps_frozen_economics(tmp_path):
@@ -154,6 +169,7 @@ def test_source_identity_scopes_entity_and_equal_amount_is_not_a_duplicate(tmp_p
     assert len(host.ledger.as_known(actor_id="analyst", workspace_id="alpha",
                                     aggregate_id="deal-1", effective_at=date(2026, 8, 31),
                                     known_at=instant(10))) == 2
+    host.grants.add(("analyst", "alpha", "deal-2", "write"))
     other = host.accept(key="expense:invoice-1", value="15000", revision="1",
                         aggregate="deal-2", system="old-pm")
     assert other.event_id != first.event_id
@@ -180,8 +196,8 @@ def test_reopen_preserves_records_and_refuses_unsupported_store_version(tmp_path
     host.accept(key="operations_noi_base", value="100000", revision="1")
     host.ledger.close()
     reopened = TemporalLedger(
-        str(path), authorize=lambda actor, workspace, capability: (
-            actor, workspace, capability
+        str(path), authorize=lambda actor, workspace, aggregate, capability: (
+            actor, workspace, aggregate, capability
         ) in host.grants,
     )
     assert reopened.as_known(actor_id="analyst", workspace_id="alpha", aggregate_id="deal-1",

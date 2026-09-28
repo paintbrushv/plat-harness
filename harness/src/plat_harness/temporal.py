@@ -79,7 +79,7 @@ class TemporalLedger:
         self,
         path: str,
         *,
-        authorize: Callable[[str, str, str], bool],
+        authorize: Callable[[str, str, str, str], bool],
         clock: Callable[[], datetime] | None = None,
     ) -> None:
         if not path or not callable(authorize):
@@ -164,8 +164,10 @@ class TemporalLedger:
     def close(self) -> None:
         self._db.close()
 
-    def _permit(self, actor_id: str, workspace_id: str, capability: str) -> None:
-        if not actor_id or not workspace_id or not self._authorize(actor_id, workspace_id, capability):
+    def _permit(self, actor_id: str, workspace_id: str, aggregate_id: str, capability: str) -> None:
+        if not actor_id or not workspace_id or not aggregate_id or not self._authorize(
+            actor_id, workspace_id, aggregate_id, capability
+        ):
             raise TemporalRefusal("Current workspace authorization refused")
 
     def append(
@@ -189,7 +191,7 @@ class TemporalLedger:
         An equal amount or text from another source remains a distinct fact.
         A correction must name the exact prior event in the same stream/key.
         """
-        self._permit(actor_id, workspace_id, "write")
+        self._permit(actor_id, workspace_id, aggregate_id, "write")
         if not all((aggregate_id, key, source_system, source_record_id, source_revision)):
             raise TemporalRefusal("Scoped aggregate, key, and source revision are required")
         if type(expected_version) is not int or expected_version < 0:
@@ -282,7 +284,7 @@ class TemporalLedger:
         effective_at: date, known_at: datetime,
     ) -> dict[str, object]:
         """Return unambiguous facts in force on a date using evidence known by K."""
-        self._permit(actor_id, workspace_id, "read")
+        self._permit(actor_id, workspace_id, aggregate_id, "read")
         effective = _date(effective_at)
         cutoff = _utc(known_at)
         rows = self._db.execute(
@@ -310,7 +312,7 @@ class TemporalLedger:
         report_id: str, content: object,
     ) -> None:
         """Freeze the exact issued artifact; a later correction cannot edit it."""
-        self._permit(actor_id, workspace_id, "write")
+        self._permit(actor_id, workspace_id, aggregate_id, "write")
         if not aggregate_id or not report_id:
             raise TemporalRefusal("Report and aggregate IDs are required")
         encoded = _json(content)
@@ -321,16 +323,21 @@ class TemporalLedger:
         )
 
     def as_issued(self, *, actor_id: str, workspace_id: str, report_id: str) -> object:
-        self._permit(actor_id, workspace_id, "read")
         row = self._db.execute(
-            "SELECT content_json, content_sha256 FROM issued_reports WHERE workspace_id=? AND report_id=?",
+            """SELECT aggregate_id, content_json, content_sha256 FROM issued_reports
+               WHERE workspace_id=? AND report_id=?""",
             (workspace_id, report_id),
         ).fetchone()
         if row is None:
             raise TemporalRefusal("Report is unavailable in this workspace")
-        if sha256(row[0].encode()).hexdigest() != row[1]:
+        self._permit(actor_id, workspace_id, row[0], "read")
+        if sha256(row[1].encode()).hexdigest() != row[2]:
             raise TemporalRefusal("Issued report integrity failed")
-        return json.loads(row[0])
+        content = json.loads(row[1])
+        if isinstance(content, dict) and content.get("type") == "original_thesis/1":
+            if content.get("deal_id") != row[0]:
+                raise TemporalRefusal("Issued thesis scope does not match its report")
+        return content
 
     def operations_noi_as_known(
         self, *, actor_id: str, workspace_id: str, aggregate_id: str,
@@ -364,7 +371,7 @@ class TemporalLedger:
         from plat_harness.original_thesis import record_original_thesis
         from plat_harness.underwriting_direction import YIELD_FORMULA
 
-        self._permit(actor_id, workspace_id, "write")
+        self._permit(actor_id, workspace_id, deal_id, "write")
         record = record_original_thesis(
             deal_id, purchase_price=purchase_price,
             year_2_unlevered_noi=year_2_unlevered_noi, capex=capex,

@@ -10,7 +10,7 @@ outbox, approval service, or release-ready event platform.
 
 `plat_harness.temporal.TemporalLedger` uses `plat.temporal.assertion/1`.
 The host supplies a private SQLite location, current authenticated
-`authorize(actor_id, workspace_id, capability)` callback, and trusted UTC
+`authorize(actor_id, workspace_id, aggregate_id, capability)` callback, and trusted UTC
 clock. A model, source document, or historical event cannot grant itself
 access. The default clock is UTC now; tests inject a deterministic clock.
 Effective intervals use date-only, half-open `[valid_from, valid_to)` values.
@@ -25,7 +25,7 @@ than silently making the latest arrival truth.
 
 `as_known` evaluates effective and knowledge cutoffs; `as_issued` returns an
 immutable report with a stored content hash, after a fresh current access
-check. `issue_original_thesis` calls the existing yield owner once and stores
+check scoped to the report's deal. `issue_original_thesis` calls the existing yield owner once and stores
 the resulting figures. `thesis_to_actual` reads that frozen result and adds
 the later operations NOI without recalculating its historical yield.
 
