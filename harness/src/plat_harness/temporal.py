@@ -164,6 +164,24 @@ class TemporalLedger:
     def close(self) -> None:
         self._db.close()
 
+    def require_access(
+        self, *, actor_id: str, workspace_id: str,
+        aggregate_id: str, capability: str,
+    ) -> None:
+        """Recheck one current, resource-scoped host authorization decision."""
+        if capability not in ("read", "write"):
+            raise TemporalRefusal("Unsupported temporal capability")
+        self._permit(actor_id, workspace_id, aggregate_id, capability)
+
+    def stream_version(self, *, actor_id: str, workspace_id: str, aggregate_id: str) -> int:
+        """Return a write-authorized version for an expected-version command."""
+        self._permit(actor_id, workspace_id, aggregate_id, "write")
+        return self._db.execute(
+            """SELECT COALESCE(MAX(stream_version), 0) FROM assertions
+               WHERE workspace_id=? AND aggregate_id=?""",
+            (workspace_id, aggregate_id),
+        ).fetchone()[0]
+
     def _permit(self, actor_id: str, workspace_id: str, aggregate_id: str, capability: str) -> None:
         if not actor_id or not workspace_id or not aggregate_id or not self._authorize(
             actor_id, workspace_id, aggregate_id, capability

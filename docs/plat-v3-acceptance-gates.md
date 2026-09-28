@@ -89,15 +89,23 @@ budget revision, crash boundary, rebuild, and retention/restore behavior.
 
 | Required evidence | Current executable evidence | Missing gate |
 |---|---|---|
-| Old/new reconciliation by property, period, account, unit category, source and revision | Synthetic intake acceptance matrix and Oak Ridge NOI bridge: actual `339,150`, budget `353,200`, variance `-14,050`. | No cross-system migration cohort with scoped row-level parity and explained deltas. |
+| Old/new reconciliation by property, period, account, unit category, source and revision | Synthetic intake acceptance matrix, exact four-row opening-state parity by stable property/period/account/unit category/source revision, and Oak Ridge NOI bridge: actual `339,150`, budget `353,200`, variance `-14,050`. | No cross-system migration cohort with scoped row-level parity and explained deltas. |
 | Monetary golden expectations | Independent TEST-001 Decimal inputs/output and Oak Ridge arithmetic above. | Broader metrics with per-metric rounding/solver tolerances; realistic cohort volumes. |
 | Fresh install and dependency combinations | Exact four-package merged-SHA clean install, missing/stale adapter refusal, `pip check`; MCP 1.30.0 locally initialized the installed costmodel server and listed 11 tools over stdio. | Published versioned producer contracts; forward/rollback compatibility matrix after new writes; packaged underwriting server/agent-prompt dispatch. |
-| Overlap, gaps, tombstones, amendments, concurrency, interrupted batches, repeat import, checkpoints | Intake store immutable revision/CAS and durability tests pass in a safe local artifact root. | Restartable source-of-record migration with scoped watermarks, quarantine totals, tombstones, and verified checkpoints. |
+| Overlap, gaps, tombstones, amendments, concurrency, interrupted batches, repeat import, checkpoints | Intake store immutable revision/CAS and durability tests pass in a safe local artifact root. The synthetic opening-state lane detects sequence gaps, keeps a tombstone marker, serializes resume workers, and verifies an interrupted/repeated batch. | Restartable source-of-record migration with scoped watermarks, quarantines, amendments, recoverable source changes, and verified checkpoints against actual source evidence. |
 | Schema upgrades | Intake contract version validation. | Event schema transformation and unsupported-version refusal in the historical ledger. |
 | Pending actions and zero replay effects | Synthetic approved-execution gate and acceptance tests check no model, engine, network, or subprocess calls before authorization. | Durable action IDs/outcomes and outbox; zero external effects during shadow migration/replay; uncertain-outcome reconciliation. |
 | Cross-workspace authorization and redaction | Protocol-level HTTP client returns `403` for unauthorized scope; approval registry is reloaded for synthetic execution/readback. | Actual host identity and tenant policy, historical access after revocation, backup/restore redaction, leakage checks. |
 | Acquisition, operations, thesis-to-actual | TEST-001 acquisition and frozen thesis, Oak Ridge operations variance, and synthetic read connector pass separately. | One integrated temporal workflow with an original thesis, later actual, and current authorization across the same stable entity IDs. |
 | Resource/correction measures | Candidate agent wheel suite with MCP 1.x: `883 passed, 11 skipped` in `12.62s`; 384 selected harness intake/auth/read tests passed in an isolated safe artifact root. | Realistic synthetic migration volume, replay time and peak resource use, freshness/watermark lag, correction burden and recovery-time observations. |
+
+The [opening-state rehearsal](plat-v3-opening-state-rehearsal.md) is a pure
+dry-run plan plus a bounded local synthetic importer. Six tests verify exact
+four-row parity, independent grouped money expectations, restart after a
+committed but uncheckpointed row, mapping/hash refusal, and current scoped
+authorization. This is partial Section 26 component evidence, not a shadow
+migration or a completed Section 27 suite. The missing gates in the table
+remain release blockers.
 
 The selected harness command is:
 
