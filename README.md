@@ -52,6 +52,10 @@ Sequenced product path (generic): [`docs/ROADMAP.md`](docs/ROADMAP.md).
 Folder-drop campaign: [`prompts/DEAL_ROOM_CAMPAIGN.md`](prompts/DEAL_ROOM_CAMPAIGN.md).
 GPU workstation bootstrap: [`prompts/SPARK_BOOTSTRAP.md`](prompts/SPARK_BOOTSTRAP.md).
 
+The loopback [synthetic read HTTP seam](docs/synthetic-read-http.md) exposes
+only fixed public fixtures for a protocol client test. No consumer app host
+integration is verified.
+
 ## Install
 
 ```bash
