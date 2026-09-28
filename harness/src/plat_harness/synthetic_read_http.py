@@ -31,7 +31,7 @@ READ_PATHS = frozenset({DEAL_PATH, OAK_RIDGE_PATH})
 
 def _deal_resource() -> dict:
     """Apply the existing harness contracts to a fixed, invented fixture."""
-    position = classify_physical_position(82, 18, 0, 100, noi="72000")
+    position = classify_physical_position(8, 2, 0, 10, noi="72000")
     assert position is not None
     price, capex, year_2_noi = "900000", "100000", "80000"
     ratio = year_2_unlevered_yield_on_cost(year_2_noi, price, capex)

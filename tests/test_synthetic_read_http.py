@@ -43,7 +43,9 @@ def test_deal_contracts_via_http_client(client) -> None:
     assert body["data_class"] == "synthetic"
     assert body["contract_version"] == 1
     assert body["occupancy"]["label"] == "lease_up"
-    assert body["occupancy"]["rate"] == "0.82"
+    assert body["occupancy"]["rate"] == "0.8"
+    assert body["occupancy"]["denominator"] == body["reasonability"]["engine"]["units"]
+    assert sum(body["occupancy"][key] for key in ("occupied", "vacant", "down")) == 10
     assert body["year_2_yield"]["ratio"] == "0.08"
     assert body["year_2_yield"]["in_target_band"] is True
     assert body["reasonability"]["review_type"] == "numeric_band_check"
