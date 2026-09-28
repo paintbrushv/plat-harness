@@ -74,10 +74,16 @@ separate gate from this VPS observation.
 | 10. Temporal integrity | Ingest date validation and missing-value refusals are tested. | Date-only precision, offset/DST boundaries, historical membership/joins, missing observations, and no future leakage. | BLOCKED |
 | 11. Retention/version | Intake contract versions and redaction controls have synthetic tests. | Event schema upgrade and unsupported-version refusal, retained redactions through restore, and atomic cross-workspace-safe projection replacement. | BLOCKED |
 
-There is currently no product bitemporal event store or historical query API.
-These eleven rows are acceptance requirements, not passing tests. The next
-work package is a minimal, versioned local event/projection implementation
-integrated with one real PLAT workflow, followed by the exact cases above.
+The local [temporal assertion rehearsal](plat-v3-temporal-rehearsal.md) now
+exercises portions of cases 1, 2, 3, 6, 9, 10, and 11 with eleven synthetic
+tests. It also freezes an original thesis and reads a later operations actual
+without replacing the issued figures. Its current-grant callback is synthetic,
+and it has no migration, outbox, restore, or host query boundary. There is no
+integrated product bitemporal store or host historical query API. The eleven
+rows remain release acceptance requirements, not passing end-to-end cases.
+The next work package must attach ingestion and authorization to the lane,
+then execute the full scenarios above, including the missing PM cutover,
+budget revision, crash boundary, rebuild, and retention/restore behavior.
 
 ## Sections 26–27: migration, economics, and authority
 
