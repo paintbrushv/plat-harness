@@ -10,7 +10,7 @@ was used. The source-of-record remains unchanged.
 
 | Component | Git commit | Role |
 |---|---|---|
-| `plat-harness` | `f46a94d95e1e0cf7c314dac2ac9b485b972889bd` | merged temporal assertion/opening runtime and installed verifier; main CI passed |
+| `plat-harness` | `c8594ba1f040f78d402df29994c02d20a583b2f8` | merged temporal/opening runtime and four-package verifier; merged integration passed |
 | `plat-agent` | `cc484170e413d9d49c407775fd9e3f9480b24d19` | merged installed-package, MCP, and explicit deal-data adapters; main CI passed |
 | `plat-costmodel` | `518142ecb8771e52fcc9985237fe1a6f97a76168` | reviewed cost package |
 | `plat-multifamily-underwriting` | `10a88ed393e6d6611c8c710b5e15ef64e128af6b` | reviewed engine 0.1.1 and packaged MCP adapter; seven-job main CI passed |
@@ -46,7 +46,7 @@ followed by `python -m pip wheel --no-deps --no-build-isolation`:
 |---|---|
 | `plat_agent-0.1.0-py3-none-any.whl` | `9c8674dd4cee2f0e42dbbf35561939a1131ac82671391b4826b42fb07595589b` |
 | `plat_costmodel-0.1.0-py3-none-any.whl` | `8b72ec463da82bb41dbd38fb97e035d712e403bede0c3ed19b665bb648156fb0` |
-| `plat_harness-0.1.0-py3-none-any.whl` | `abc4b766660b45ae4b6e13ecba1c7652e53eebaf50abeed7ee23697f5ceabdc1` |
+| `plat_harness-0.1.0-py3-none-any.whl` | `29dcb659b763e65b0b828a1a502a947ceaf3be2e5a06d4d7d54a488cdc7c53b6` |
 | `plat_multifamily_underwriting-0.1.1-py3-none-any.whl` | `1157b4155b0628169e5319f08d2acf427f15b02229b745fad2988eb3af45ae60` |
 
 These are observed build-file hashes, not a claim of byte-for-byte
@@ -62,6 +62,7 @@ python3 -m venv <clean-env>
 env -u PYTHONPATH -u PLAT_COSTMODEL_PATH -u PLAT_COSTMODEL_DEFERRED_PATH \
     -u PLAT_MULTIFAMILY_UNDERWRITING_PATH -u UNDERWRITING_ENGINE_PATH \
     -u PLAT_DEALS_ROOT -u UNDERWRITING_MCP_CMD -u PLAT_COSTMODEL_CMD \
+    PLAT_HARNESS_EXPECTED_SHA=c8594ba1f040f78d402df29994c02d20a583b2f8 \
     <clean-env>/bin/python -I scripts/verify_public_install.py
 ```
 
@@ -71,9 +72,11 @@ TEST-001 economics and withheld bid, packaged deal fixture loading, and a
 bounded local stdio handshakes with both installed producer servers. It also
 checks the installed opening-state import, scoped historical read refusal,
 and absence of forward-filled opening values.
-The `V3 public integration` GitHub workflow repeats the installed-package
-script on Python 3.12 at the exact SHAs above; its hosted result is a
-separate gate from this VPS observation. The current clean environment
+The `V3 public integration` GitHub workflow installs the three exact producer
+commits above and the checked-out harness commit that triggered the workflow.
+It passes that commit as `PLAT_HARNESS_EXPECTED_SHA` to the verifier so a
+later harness merge cannot silently retain an older self-pin. Its hosted
+result is a separate gate from this VPS observation. The clean environment
 completed the isolated script with local subprocess/socket access.
 
 ## Section 13: temporal and replay acceptance
