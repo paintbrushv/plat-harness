@@ -19,6 +19,16 @@ import sys
 from dataclasses import replace
 from pathlib import Path
 
+_PATH_VARIABLES = (
+    "PYTHONPATH",
+    "PLAT_COSTMODEL_PATH",
+    "PLAT_COSTMODEL_DEFERRED_PATH",
+    "PLAT_MULTIFAMILY_UNDERWRITING_PATH",
+    "UNDERWRITING_ENGINE_PATH",
+)
+if not sys.flags.isolated or any(os.environ.get(name) for name in _PATH_VARIABLES):
+    raise RuntimeError("run with python -I and all sibling path variables unset")
+
 import anyio
 import engine
 import plat_agent
@@ -44,15 +54,6 @@ EXPECTED_SHAS = {
     "plat-costmodel": COSTMODEL_V1.source_sha,
     "plat-multifamily-underwriting": UNDERWRITING_V1.source_sha,
 }
-FORBIDDEN_PATH_VARS = (
-    "PYTHONPATH",
-    "PLAT_COSTMODEL_PATH",
-    "PLAT_COSTMODEL_DEFERRED_PATH",
-    "PLAT_MULTIFAMILY_UNDERWRITING_PATH",
-    "UNDERWRITING_ENGINE_PATH",
-)
-
-
 def _check(condition: bool, message: str) -> None:
     if not condition:
         raise RuntimeError(message)
@@ -68,8 +69,6 @@ async def _costmodel_tool_count() -> int:
 
 
 def main() -> None:
-    _check(bool(sys.flags.isolated), "run with python -I")
-    _check(not any(os.environ.get(name) for name in FORBIDDEN_PATH_VARS), "sibling path variables must be unset")
     for package, module in (
         ("plat-agent", plat_agent),
         ("plat-harness", plat_harness),
