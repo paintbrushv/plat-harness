@@ -1,0 +1,12 @@
+{
+  "data_class": "public_synthetic",
+  "source_fixture": "plat_agent.lifecycle/fixtures/test001_underwriting_inputs.json",
+  "physical_counts": {
+    "stabilized": [95, 5, 0, 100],
+    "lease_up": [75, 25, 0, 100],
+    "cost_stress": [95, 5, 0, 100],
+    "high_price": [95, 5, 0, 100],
+    "small_distressed": [28, 8, 4, 40],
+    "missing_price": [95, 5, 0, 100]
+  }
+}
