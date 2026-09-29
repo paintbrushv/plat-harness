@@ -1,0 +1,54 @@
+{
+  "synthetic": true,
+  "label": "Invented September 2026 manager handoff; no CCAR or TC source data",
+  "period": "2026-09",
+  "issued_on": "2026-10-01",
+  "correction_known_on": "2026-10-03",
+  "properties": [
+    {
+      "label": "TC",
+      "property_id": "synthetic-tc",
+      "cutover_on": "2026-09-23",
+      "sources": {
+        "before": {"platform": "Yardi", "source_system": "synthetic/yardi/tc/outgoing"},
+        "after": {"platform": "ResMan", "source_system": "synthetic/resman/tc/incoming"}
+      },
+      "opening_trial_balance": {"cash": "100000.00", "receivables": "20000.00", "payables": "-30000.00", "deposits": "-10000.00", "equity": "-80000.00"},
+      "transactions": [
+        {"feed": "before", "record_id": "TX-001", "effective_on": "2026-09-20", "revision": "1", "postings": {"cash": "50000.00", "rental_revenue": "-50000.00"}},
+        {"feed": "before", "record_id": "TX-002", "effective_on": "2026-09-22", "revision": "1", "postings": {"operating_expense": "18000.00", "cash": "-18000.00"}},
+        {"feed": "before", "record_id": "TX-003", "effective_on": "2026-09-22", "revision": "1", "postings": {"cash": "5000.00", "deposits": "-5000.00"}},
+        {"feed": "after", "record_id": "TX-001", "effective_on": "2026-09-23", "revision": "1", "postings": {"cash": "20000.00", "rental_revenue": "-20000.00"}},
+        {"feed": "after", "record_id": "TX-003", "effective_on": "2026-09-23", "revision": "1", "postings": {"cash": "5000.00", "deposits": "-5000.00"}},
+        {"feed": "after", "record_id": "TX-002", "effective_on": "2026-09-25", "revision": "1", "postings": {"operating_expense": "7000.00", "cash": "-7000.00"}}
+      ],
+      "correction": {"feed": "before", "record_id": "TX-002", "effective_on": "2026-09-22", "revision": "2", "postings": {"operating_expense": "18500.00", "cash": "-18500.00"}},
+      "expected_issued_trial_balance": {"cash": "155000.00", "receivables": "20000.00", "payables": "-30000.00", "deposits": "-20000.00", "equity": "-80000.00", "rental_revenue": "-70000.00", "operating_expense": "25000.00"},
+      "expected_restated_trial_balance": {"cash": "154500.00", "receivables": "20000.00", "payables": "-30000.00", "deposits": "-20000.00", "equity": "-80000.00", "rental_revenue": "-70000.00", "operating_expense": "25500.00"},
+      "expected_issued_noi": "45000.00",
+      "expected_restated_noi": "44500.00",
+      "budget_noi": "47000.00"
+    },
+    {
+      "label": "CCAR",
+      "property_id": "synthetic-ccar",
+      "cutover_on": "2026-09-25",
+      "sources": {
+        "before": {"platform": "Yardi", "source_system": "synthetic/yardi/ccar/outgoing"},
+        "after": {"platform": "Yardi", "source_system": "synthetic/yardi/ccar/incoming"}
+      },
+      "opening_trial_balance": {"cash": "200000.00", "receivables": "25000.00", "payables": "-40000.00", "deposits": "-15000.00", "equity": "-170000.00"},
+      "transactions": [
+        {"feed": "before", "record_id": "TX-001", "effective_on": "2026-09-20", "revision": "1", "postings": {"cash": "60000.00", "rental_revenue": "-60000.00"}},
+        {"feed": "before", "record_id": "TX-002", "effective_on": "2026-09-24", "revision": "1", "postings": {"operating_expense": "25000.00", "cash": "-25000.00"}},
+        {"feed": "after", "record_id": "TX-001", "effective_on": "2026-09-25", "revision": "1", "postings": {"cash": "15000.00", "rental_revenue": "-15000.00"}},
+        {"feed": "after", "record_id": "TX-002", "effective_on": "2026-09-28", "revision": "1", "postings": {"operating_expense": "6000.00", "cash": "-6000.00"}}
+      ],
+      "expected_issued_trial_balance": {"cash": "244000.00", "receivables": "25000.00", "payables": "-40000.00", "deposits": "-15000.00", "equity": "-170000.00", "rental_revenue": "-75000.00", "operating_expense": "31000.00"},
+      "expected_restated_trial_balance": {"cash": "244000.00", "receivables": "25000.00", "payables": "-40000.00", "deposits": "-15000.00", "equity": "-170000.00", "rental_revenue": "-75000.00", "operating_expense": "31000.00"},
+      "expected_issued_noi": "44000.00",
+      "expected_restated_noi": "44000.00",
+      "budget_noi": "46000.00"
+    }
+  ]
+}
