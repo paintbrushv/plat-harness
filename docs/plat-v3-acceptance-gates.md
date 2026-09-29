@@ -94,25 +94,28 @@ completed the isolated script with local subprocess/socket access.
 | 1. Late August expense | Immutable original-thesis object and intake revision store are tested separately. | Bitemporal NOI by effective August and knowledge cutoff September 10/20; frozen September 10 report must stay `100,000`, restated view `85,000`, repeat import unchanged. | BLOCKED |
 | 2. Future lease | Date and unit evidence parsing exists. | Separate September preleasing from October physical occupancy under temporal query. | BLOCKED |
 | 3. Backdated down unit | Occupancy normalizer rejects ambiguous status in synthetic tests. | Linked correction, as-issued count preservation, and overlapping vacancy/down reconciliation. | BLOCKED |
-| 4. PM cutover | Intake source fingerprints and reconciliation gates are tested. | Scoped transaction/revision dedupe across two PM feeds, deposits, receivables, and opening-balance parity. Equal amounts must remain distinct. | BLOCKED |
+| 4. PM cutover | Intake source fingerprints and reconciliation gates are tested. The [synthetic September handoff](plat-v3-synthetic-september-handoff.md) balances two invented GL feeds per property against TB/NOI expectations, keeps equal deposits distinct, and restates a late TC correction after an issued close. | Real Yardi/ResMan adapters, approved source TB/IS/GL/budget and subledger parity, host source authority, and an integrated Boxscore close/correction. | BLOCKED |
 | 5. Budget revision | Original acquisition thesis is frozen and later operations NOI is separate. | Independently query original budget, amendment, and latest forecast at old/new cutoffs. | BLOCKED |
 | 6. Disorder/concurrency | `test_ingest_store.py` verifies a compare-and-swap winner and immutable append. | Domain event stream sequence gaps, duplicate delivery, and competing approval commands against an obsolete stream version. | BLOCKED |
 | 7. Crash boundary | Intake store tests interruption at local file publication checkpoints. | Transactional event/outbox recovery and provider-outcome reconciliation before an uncertain external retry. | BLOCKED |
 | 8. Rebuild | Reimported frozen thesis matches the original synthetic snapshot. | Zero-to-current and verified-checkpoint projection rebuild equality, pinned reducer/schema versions, zero action/task effects. | BLOCKED |
-| 9. Historical access | Approved-execution tests reload the current host approval registry for execution and readback. The synthetic temporal reader rechecks current deal grants and gives the same refusal for absent and unauthorized issued reports. | Historical records scoped by a real host's current workspace grants; revoked former access must fail after replay/restore. | BLOCKED |
+| 9. Historical access | Approved-execution tests reload the current host approval registry. The synthetic temporal reader refuses unauthorized reports; the September handoff test repeats revoked and cross-property read refusals after a SQLite backup/restore. | Historical records scoped by a real host's current workspace grants and approved restore boundary. | BLOCKED |
 | 10. Temporal integrity | Ingest date validation and missing-value refusals are tested. | Date-only precision, offset/DST boundaries, historical membership/joins, missing observations, and no future leakage. | BLOCKED |
 | 11. Retention/version | Intake contract versions and redaction controls have synthetic tests. | Event schema upgrade and unsupported-version refusal, retained redactions through restore, and atomic cross-workspace-safe projection replacement. | BLOCKED |
 
 The local [temporal assertion rehearsal](plat-v3-temporal-rehearsal.md) now
 exercises portions of cases 1, 2, 3, 6, 9, 10, and 11 with twelve synthetic
 tests. It also freezes an original thesis and reads a later operations actual
-without replacing the issued figures. Its current-grant callback is synthetic,
-and it has no migration, outbox, restore, or host query boundary. There is no
-integrated product bitemporal store or host historical query API. The eleven
-rows remain release acceptance requirements, not passing end-to-end cases.
-The next work package must attach ingestion and authorization to the lane,
-then execute the full scenarios above, including the missing PM cutover,
-budget revision, crash boundary, rebuild, and retention/restore behavior.
+without replacing the issued figures. The separate
+[synthetic September handoff](plat-v3-synthetic-september-handoff.md) adds one
+combined two-property cutover, issued-close correction, and local backup/restore
+case. Its source rule and current-grant callback are synthetic. There is no
+integrated Boxscore close, production adapter, migration, outbox, real host
+query boundary, or real grant/restore policy. The eleven rows remain release
+acceptance requirements, not passing end-to-end cases. The next work package
+must attach ingestion and authorization to the lane, then execute the full
+scenarios above against approved evidence, including budget revision, crash
+boundary, rebuild, and retention/restore behavior.
 
 ## Sections 26–27: migration, economics, and authority
 
