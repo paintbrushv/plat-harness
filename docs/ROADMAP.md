@@ -36,6 +36,7 @@ in an overlay. Copy `policies/examples/cashflow_first.yaml`.
 |---|---|---|
 | 0 | Landed | CONFLICT / `MISSING_MILLAGE` / occupancy four-counts |
 | A | Landed (synthetic samples here) | Scoreboard occupancy + T12 R&M when `PLAT_HARNESS_OPS_ROOT` points at `samples/ops` |
+| Income review acceptance | Landed (fabricated 160-unit case) | `review-income` reconciles monthly booked fees, overlapping T12s, current-roll stress, retained bad debt and tax warnings; output is provisional evidence, not a price |
 | E | This repo | Stranger clones, pytest, millage-less underwrite refuses |
 | B | Not in this extract yet | `underwrite` wraps ingest → type → millage → engine extra → recon → IC draft. Engine extra required for CoC |
 | C | Later | Ops variance + exceptions; missing budget ≠ $0 |

@@ -1,0 +1,74 @@
+{
+  "data_class": "synthetic",
+  "schema_version": "income-review/1.0.0",
+  "case_id": "garden_income_quality_v1",
+  "source_note": "Entirely fabricated 160-unit acceptance fixture. It contains no seller records or resident data.",
+  "units": 160,
+  "t12": {
+    "period_end": "2026-08",
+    "prior_period_end": "2026-07",
+    "reported_net_rent": "1905000",
+    "reported_other_income": "206400",
+    "reported_noi": "1011400",
+    "net_rent_monthly": ["160000", "160000", "160000", "160000", "160000", "160000", "160000", "160000", "160000", "155000", "155000", "155000"],
+    "tax_monthly": ["20000", "20000", "20000", "-20000", "20000", "20000", "20000", "20000", "20000", "20000", "20000", "20000"],
+    "tax": "200000",
+    "insurance": "100000",
+    "operating_expenses": "1100000",
+    "rental_arrears_writeoffs": "12000",
+    "upfront_concessions": "14000",
+    "other_income": [
+      {
+        "code": "water_reimbursement",
+        "kind": "utility_reimbursement",
+        "evidence": "booked_gl",
+        "monthly": ["9000", "9000", "9000", "9000", "9000", "9000", "9000", "9000", "9000", "9000", "9000", "9000"],
+        "credit_rate": "0.90",
+        "paired_expense": "132000",
+        "paired_expense_evidence": "included_in_t12_opex"
+      },
+      {
+        "code": "termination",
+        "kind": "turnover_fee",
+        "evidence": "booked_gl",
+        "monthly": ["8000", "8000", "8000", "8000", "8000", "8000", "8000", "8000", "8000", "8000", "0", "16000"],
+        "credit_rate": "0.50"
+      },
+      {
+        "code": "cleaning_damage",
+        "kind": "turnover_fee",
+        "evidence": "booked_gl",
+        "monthly": ["3000", "3000", "3000", "3000", "3000", "3000", "3000", "3000", "3000", "3000", "3000", "3000"],
+        "credit_rate": "0.60"
+      },
+      {
+        "code": "application_admin",
+        "kind": "leasing_fee",
+        "evidence": "booked_gl",
+        "monthly": ["1200", "1200", "1200", "1200", "1200", "1200", "1200", "1200", "1200", "1200", "1200", "1200"],
+        "credit_rate": "0.70"
+      },
+      {
+        "code": "bad_debt",
+        "kind": "bad_debt",
+        "evidence": "booked_gl",
+        "monthly": ["-4000", "-4000", "-4000", "-4000", "-4000", "-4000", "-4000", "-4000", "-4000", "-4000", "-4000", "-4000"],
+        "credit_rate": "1.00"
+      }
+    ]
+  },
+  "rent_roll": {
+    "occupied": 144,
+    "vacant": 16,
+    "down": 0,
+    "occupied_base_rent_monthly": "150000",
+    "recent_moveins_current_rent_rows": 72
+  },
+  "house": {
+    "tax": "240000",
+    "tax_status": "interim_assumption",
+    "insurance": "112000",
+    "reserve_per_unit": "1000",
+    "concession_floor": "18000"
+  }
+}
