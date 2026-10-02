@@ -17,6 +17,10 @@ plat-harness scoreboard --asset example_property
 plat-harness underwrite --deal example_garden_style
 # → MISSING_MILLAGE  (mills per $1,000)
 
+# Fabricated income-quality acceptance case (booked fees, rent trend, tax warning)
+plat-harness review-income --case samples/deals/synthetic_income_quality/case.json
+# → provisional evidence bridge (exit 2); no certified price
+
 plat-harness underwrite --deal example_garden_style --millage-rate 25.31
 # → millage gate passes; CoC/IRR/DSCR/EM/cap are NOT invented
 #    until you import a Decimal engine extra (see engine/README.md)
@@ -34,6 +38,7 @@ deal room.
 | `plat-harness ask` | NL or `--metric` → tools only. CONFLICT metrics need `--context`. |
 | `plat-harness scoreboard` | Pipeline tile: certified CoC/occupancy or `uncertified_empty`. |
 | `plat-harness underwrite --millage-rate` | Deal path. Millage-less runs refuse. |
+| `plat-harness review-income --case` | Fabricated monthly income bridge; provisional output only. |
 
 Occupancy answers must emit **occupied, vacant, down, and the denominator**.
 Missing millage → `MISSING_MILLAGE`. Missing feed ≠ `$0`. `IRR = CoC * 0.8` is forbidden.

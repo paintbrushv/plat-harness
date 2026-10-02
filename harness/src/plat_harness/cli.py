@@ -17,6 +17,7 @@ from plat_harness.errors import (
     OCCUPANCY_COUNTS_REQUIRED,
     UNCERTIFIED_METRIC,
 )
+from plat_harness.income_review import IncomeReviewError, review_income_case
 from plat_harness.millage import PROPERTY_TAX_MILLAGE_QUESTION, parse_millage_rate
 from plat_harness.models import NullModel
 from plat_harness.ranks import PermissionRank
@@ -60,6 +61,8 @@ def main(argv: list[str] | None = None) -> int:
             return _cmd_scoreboard(args)
         if args.command == "underwrite":
             return _cmd_underwrite(args)
+        if args.command == "review-income":
+            return _cmd_review_income(args)
         if args.command == "synthetic-underwrite":
             return _cmd_synthetic_underwrite(args)
         if args.command == "present":
@@ -135,6 +138,11 @@ def _build_parser() -> argparse.ArgumentParser:
     uw.add_argument("--deal")
     uw.add_argument("--rank", type=int, default=2, choices=(0, 1, 2, 3))
 
+    income = sub.add_parser(
+        "review-income", help="Review a fabricated T12 income bridge and current-roll stress"
+    )
+    income.add_argument("--case", required=True, help="Path to an explicitly synthetic case JSON")
+
     synthetic = sub.add_parser(
         "synthetic-underwrite",
         help="Exact host-reviewed synthetic Slice B draft; never financial certification",
@@ -165,6 +173,18 @@ def _build_parser() -> argparse.ArgumentParser:
     present.add_argument("--model-reasonable", action="store_true")
     present.add_argument("--rank", type=int, default=None, choices=(0, 1, 2, 3))
     return parser
+
+
+def _cmd_review_income(args: argparse.Namespace) -> int:
+    try:
+        with Path(args.case).open(encoding="utf-8") as handle:
+            case = json.load(handle)
+        result = review_income_case(case)
+    except (OSError, json.JSONDecodeError, IncomeReviewError, KeyError, TypeError) as exc:
+        print(json.dumps({"error": "INVALID_INCOME_CASE", "message": str(exc)}, indent=2), file=sys.stderr)
+        return 2
+    print(json.dumps(result, indent=2))
+    return 2  # An evidence review with open blockers cannot certify pricing.
 
 
 def _cmd_present(args: argparse.Namespace) -> int:
