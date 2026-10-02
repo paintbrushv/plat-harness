@@ -104,3 +104,12 @@ def test_unsupported_schema_version_refuses(case) -> None:
     case["schema_version"] = "income-review/9.0.0"
     with pytest.raises(IncomeReviewError, match="schema_version"):
         review_income_case(case)
+
+
+def test_unicode_digit_count_returns_structured_cli_refusal(case, tmp_path, capsys) -> None:
+    case["rent_roll"]["occupied"] = "²"
+    path = tmp_path / "bad-count.json"
+    path.write_text(json.dumps(case), encoding="utf-8")
+    assert main(["review-income", "--case", str(path)]) == 2
+    result = json.loads(capsys.readouterr().err)
+    assert result["error"] == "INVALID_INCOME_CASE"

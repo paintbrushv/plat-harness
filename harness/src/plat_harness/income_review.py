@@ -35,10 +35,13 @@ def _months(value: Any, field: str) -> list[Decimal]:
 
 def _count(value: Any, field: str) -> int:
     if isinstance(value, bool) or not (
-        isinstance(value, int) or (isinstance(value, str) and value.isdigit())
+        isinstance(value, int) or (isinstance(value, str) and value.isascii() and value.isdecimal())
     ):
         raise IncomeReviewError(f"{field} must be a nonnegative integer")
-    number = int(value)
+    try:
+        number = int(value)
+    except (ValueError, OverflowError) as exc:
+        raise IncomeReviewError(f"{field} must be a nonnegative integer") from exc
     if number < 0:
         raise IncomeReviewError(f"{field} must be a nonnegative integer")
     return number
