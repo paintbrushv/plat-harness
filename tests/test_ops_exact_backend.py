@@ -84,6 +84,19 @@ def test_prior_snapshot_is_verified_and_citations_identify_exact_rows(tmp_path):
     assert missing['evidence'][0]['table'] == 'exact_gl'
     assert ':revision:actual:' in missing['evidence'][0]['artifact']
     assert missing['evidence'][0]['row'] == 1  # exact_gl.ordinal 0, display row 1
+    # A concurrent new revision must not replace the snapshot for the GL
+    # revision already selected by this review.
+    newer = {**data, 'period': '2026-05', 'unit_count': 10,
+             'snapshot': {**snapshot, 'as_of_date': '2026-05-31', 'occupied_units': 9}}
+    newer_hash = hashlib.sha256(json.dumps(newer, separators=(',', ':')).encode()).hexdigest()
+    with sqlite3.connect(path) as con:
+        con.execute('INSERT INTO exact_revisions VALUES (?,?,?,?,?,?,?)',
+                    ('newer', 'synthetic_ops', '2026-05', 2, 10, '2026-05-31', newer_hash))
+        con.execute('INSERT INTO exact_snapshots VALUES (?,?,?,?,?)',
+                    ('newer', '2026-05-31', 9, 1, 0))
+        con.execute('INSERT INTO exact_snapshot_money VALUES (?,?,?)',
+                    ('newer', 'market_rent_total', 12345))
+    assert [r['id'] for r in backend.occupancy_snapshots('synthetic_ops', '2026-05-31')] == ['prior']
     with sqlite3.connect(path) as con:
         con.execute("UPDATE exact_snapshots SET occupied_units=18,vacant_units=2 WHERE revision_id='prior'")
     with pytest.raises(HarnessError, match='canonical input hash'):

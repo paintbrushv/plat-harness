@@ -63,7 +63,7 @@ ERROR_CODES = frozenset({
     'NOT_IMPLEMENTED', 'BACKEND_UNAVAILABLE', 'PRODUCER_TIMEOUT',
     'PRODUCER_MISMATCH', 'PRODUCER_REFUSAL', 'MONEY_OVERFLOW',
     'EXCESS_PRECISION', 'MONEY_PRECISION', 'REVIEW_REQUIRED', 'INPUT_LIMIT',
-    'CONTRACT_MISMATCH',
+    'CONTRACT_MISMATCH', 'ACCOUNT_MAPPING_CONFLICT',
 })
 
 EXCEPTION_CODES = frozenset({
@@ -378,6 +378,7 @@ class ExactSqliteOpsBackend(SqliteOpsBackend):
         if self._query('PRAGMA user_version', ())[0][0] != 1:
             _fail('INVALID_CONTRACT', 'Exact database schema is incomplete or unsupported.')
         self._units = {}
+        self._selected = {}
 
     def resolve_property(self, asset_id):
         rows = self._query(
@@ -398,6 +399,7 @@ class ExactSqliteOpsBackend(SqliteOpsBackend):
             return []
         revision, units, created, digest = revisions[0]
         self._units[property_key] = units
+        self._selected[property_key] = (period, revision)
         result, _ = self._verified_revision(property_key, period, revision, units, created, digest)
         return result
 
@@ -449,13 +451,16 @@ class ExactSqliteOpsBackend(SqliteOpsBackend):
         return self._units.get(property_key)
 
     def occupancy_snapshots(self, property_key, bound_date):
+        selected_period, selected_revision = self._selected.get(property_key, ('', ''))
         rows = self._query(
             'SELECT r.id,r.period,r.unit_count,r.created_at,r.input_sha256 '
             'FROM exact_snapshots s JOIN exact_revisions r ON r.id=s.revision_id '
-            'WHERE r.property=? AND s.as_of_date<=? AND r.revision=('
+            'WHERE r.property=? AND s.as_of_date<=? AND '
+            '((r.period=? AND r.id=?) OR (r.period<>? AND r.revision=('
             'SELECT max(x.revision) FROM exact_revisions x WHERE x.property=r.property '
-            'AND x.period=r.period) ORDER BY s.as_of_date DESC LIMIT ?',
-            (property_key, bound_date, MAX_SNAPSHOTS))
+            'AND x.period=r.period))) ORDER BY s.as_of_date DESC LIMIT ?',
+            (property_key, bound_date, selected_period, selected_revision,
+             selected_period, MAX_SNAPSHOTS))
         snapshots = []
         for revision, period, units, created, digest in rows:
             _, snapshot = self._verified_revision(
