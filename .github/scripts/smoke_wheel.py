@@ -95,6 +95,16 @@ def main() -> int:
              "    raise SystemExit('packaged glossary missing yield owner: ' + owner)\n"
              "print('glossary-guard-ok')"], env=clean_env())
 
+        # The corrected public fixture must load without a source checkout.
+        run([py, "-I", "-c",
+             "from plat_harness.synthetic_read_http import _oak_ridge_resource\n"
+             "fixture = _oak_ridge_resource()\n"
+             "assert fixture['fixture_revision'] == 2\n"
+             "assert fixture['actual_noi'] == '46750'\n"
+             "assert fixture['budget_noi'] == '88600'\n"
+             "assert fixture['noi_variance'] == '-41850'\n"
+             "print('packaged-operating-fixture-ok')"], env=clean_env(), cwd=tmp)
+
     print("SMOKE OK")
     return 0
 

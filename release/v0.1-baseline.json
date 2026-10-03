@@ -1,0 +1,158 @@
+{
+  "contract_version": "plat.release-baseline/1",
+  "release_line": "0.1",
+  "recorded_on": "2026-10-02",
+  "status": "development_baseline",
+  "release_approved": false,
+  "description": "Starting source pins, not release-candidate approval. The harness source pin is the parent baseline; the eventual candidate must pin the commit containing all changes and actual built artifacts.",
+  "components": {
+    "plat-harness": {
+      "repository": "https://github.com/paintbrushv/plat-harness",
+      "source_commit": "db85b94eedcba3dccb4db6b5a61a4623af870ca2",
+      "source_version": "0.1.0",
+      "required": true,
+      "role": "workflow control plane",
+      "source_evidence": "fresh main checkout on 2026-10-02",
+      "published_version_at_audit": "0.1.0",
+      "publication_evidence_date": "2026-10-02",
+      "release_candidate_version": null
+    },
+    "plat-agent": {
+      "repository": "https://github.com/paintbrushv/plat-agent",
+      "source_commit": "a19d726ae8006e3ccbfc6984fcfef0d02abf02e3",
+      "source_version": "0.1.0",
+      "required": true,
+      "role": "installed analysis orchestration",
+      "source_evidence": "fresh main checkout on 2026-10-02",
+      "published_version_at_audit": null,
+      "publication_evidence_date": "2026-10-02",
+      "release_candidate_version": null
+    },
+    "plat-costmodel": {
+      "repository": "https://github.com/paintbrushv/plat-costmodel",
+      "source_commit": "518142ecb8771e52fcc9985237fe1a6f97a76168",
+      "source_version": "0.1.0",
+      "required": true,
+      "role": "renovation and deferred maintenance producer",
+      "source_evidence": "fresh main checkout on 2026-10-02",
+      "published_version_at_audit": "0.1.0",
+      "publication_evidence_date": "2026-10-02",
+      "release_candidate_version": null
+    },
+    "plat-multifamily-underwriting": {
+      "repository": "https://github.com/paintbrushv/plat-multifamily-underwriting",
+      "source_commit": "10a88ed393e6d6611c8c710b5e15ef64e128af6b",
+      "source_version": "0.1.1",
+      "required": true,
+      "role": "underwriting and backsolve producer",
+      "source_evidence": "fresh main checkout on 2026-10-02",
+      "published_version_at_audit": "0.1.0",
+      "publication_evidence_date": "2026-10-02",
+      "release_candidate_version": null
+    },
+    "plat-operations": {
+      "repository": "https://github.com/paintbrushv/plat-operations",
+      "source_commit": "d87ead5f8f4925ff828fede19b6f2d436fd07474",
+      "source_version": "0.1.0",
+      "required": true,
+      "role": "Rust operating analysis producer",
+      "source_evidence": "fresh main checkout on 2026-10-02",
+      "published_version_at_audit": null,
+      "publication_evidence_date": "2026-10-02",
+      "release_candidate_version": null
+    },
+    "platworks": {
+      "repository": "https://github.com/paintbrushv/platworks",
+      "source_commit": "d78981143913a62a0019ff387461524562e38a2d",
+      "source_version": "0.1.3",
+      "required": true,
+      "role": "public library and umbrella MCP",
+      "source_evidence": "fresh main checkout on 2026-10-02",
+      "published_version_at_audit": "0.1.3",
+      "publication_evidence_date": "2026-10-02",
+      "release_candidate_version": null
+    }
+  },
+  "optional_components": {
+    "plat-submarket-atlas": {
+      "required": false,
+      "reason": "No initial acquisition or operating journey depends on this component."
+    },
+    "plat-supply-demand": {
+      "required": false,
+      "reason": "No initial acquisition or operating journey depends on this component."
+    },
+    "plat-market-study-agent": {
+      "required": false,
+      "reason": "Scheduled public-data refresh failed at audit; no freshness claim."
+    },
+    "geostack": {
+      "required": false,
+      "reason": "Offline core CI failed at audit; no released workflow depends on it."
+    },
+    "plat-land": {
+      "required": false,
+      "reason": "Separate land/civic product scope."
+    }
+  },
+  "target_matrix": {
+    "python": [
+      "3.11",
+      "3.12"
+    ],
+    "platforms": [
+      "linux-x86_64",
+      "macos-x86_64",
+      "macos-arm64",
+      "windows-x86_64"
+    ],
+    "validation_status": "pending"
+  },
+  "contracts": {
+    "synthetic_read_http": 1,
+    "oak_ridge_fixture_revision": 2,
+    "synthetic_approved_execution": "approved-execution/1.0.0",
+    "underwriting_mcp": "plat.underwriting.mcp/1",
+    "new_real_file_execution": "pending separate versioned reviewed-draft contract"
+  },
+  "fixtures": {
+    "oak_ridge_2026_05": {
+      "path": "harness/src/plat_harness/fixtures/oak_ridge_2026_05.v2.json",
+      "sha256": "6e79690ad858881e11b0766c2394059033b7ef16cc5c3d5d56e0759b9e72b849",
+      "producer": "plat-operations",
+      "revision": 2
+    }
+  },
+  "host_validation": {
+    "ChatGPT": {
+      "status": "pending",
+      "evidence": null
+    },
+    "Claude": {
+      "status": "pending",
+      "evidence": null
+    },
+    "Grok.com": {
+      "status": "pending",
+      "evidence": null
+    },
+    "Muse.ai": {
+      "status": "pending_external_review_nonblocking",
+      "evidence": null
+    }
+  },
+  "open_release_gates": [
+    "authoritative_backsolve_api",
+    "exact_operating_money_and_copy_migration",
+    "compatible_mcp_packages",
+    "installed_umbrella_and_rust_matrix",
+    "real_file_reviewed_draft_workflows",
+    "reviewed_public_library",
+    "three_host_verification",
+    "ownership_community_and_site",
+    "original_source_acceptance",
+    "temporal_replay_acceptance_or_explicit_scope_exclusions",
+    "three_user_pilot",
+    "production_verification"
+  ]
+}

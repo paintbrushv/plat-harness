@@ -1,5 +1,9 @@
 # Acceptance scorecard (honest, public aggregates only)
 
+Current v0.1 source pins and implementation evidence are linked from the
+[build status](plat-v0.1-build-status.md). The gates below remain open until
+their specific source/review evidence is supplied.
+
 Contract `acceptance-scorecard/1.0.0`. This public scorecard is **not vendor
 certification**, **not engine permission**, and **not Item 2 milestone
 acceptance**. It scores ten dimensions separately. A green engineering suite

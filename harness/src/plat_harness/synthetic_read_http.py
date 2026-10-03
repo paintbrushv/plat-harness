@@ -1,7 +1,8 @@
 """Loopback HTTP read seam for two fixed, public synthetic V3 resources.
 
 This is a protocol-level client surface, not a host integration or a general
-deal API. It reads no files, runs no engines, and creates no artifacts.
+deal API. It loads a packaged public fixture, reads no user files, runs no
+engines, and creates no artifacts.
 """
 
 from __future__ import annotations
@@ -12,6 +13,7 @@ import json
 import os
 from decimal import Decimal
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from importlib.resources import files
 from typing import Iterable, Mapping
 from urllib.parse import urlsplit
 
@@ -86,26 +88,10 @@ def _deal_resource() -> dict:
 
 
 def _oak_ridge_resource() -> dict:
-    """The pinned Boxscore public sample; no cross-repo runtime dependency."""
-    return {
-        "contract_version": 1,
-        "data_class": "synthetic",
-        "fixture_id": "oak-ridge-2026-05",
-        "source": {
-            "repository": "plat-operations",
-            "commit": "171eb9622f53fe9d6b9703191d5a6832064100ed",
-            "test": "boxscore/tests/oak_ridge_demo.rs",
-        },
-        "property": "Oak Ridge",
-        "period": "2026-05",
-        "actual_noi": "339150",
-        "budget_noi": "353200",
-        "noi_variance": "-14050",
-        "variance_formula": "actual_noi - budget_noi",
-        "occupied_units": 153,
-        "vacant_units": 15,
-        "down_units": 4,
-    }
+    """Load the versioned public sample; no producer or user files needed."""
+    return json.loads(files("plat_harness").joinpath(
+        "fixtures/oak_ridge_2026_05.v2.json"
+    ).read_text(encoding="utf-8"))
 
 
 def _json_bytes(payload: dict) -> bytes:

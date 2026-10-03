@@ -1,0 +1,55 @@
+name: v0.1 financial producer parity
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  oak-ridge:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      CARGO_PROFILE_DEV_DEBUG: "0"
+      CARGO_PROFILE_TEST_DEBUG: "0"
+      CARGO_INCREMENTAL: "0"
+      CARGO_BUILD_JOBS: "2"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Validate baseline and fixture hashes
+        id: baseline
+        run: python scripts/verify_release_baseline.py --github-output "$GITHUB_OUTPUT"
+      - uses: actions/checkout@v4
+        with:
+          repository: paintbrushv/plat-operations
+          ref: ${{ steps.baseline.outputs.operations_commit }}
+          path: .producers/plat-operations
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: .producers/plat-operations/boxscore
+      - name: Producer economic bridge and legacy sign refusal
+        working-directory: .producers/plat-operations/boxscore
+        run: cargo test --locked --test oak_ridge_demo
+      - name: Install harness wheel
+        run: |
+          python -m pip install .
+          python -m pip check
+      - name: Compare installed HTTP resource with live Rust producer
+        run: |
+          python -I scripts/verify_oak_ridge_producer.py \
+            --operations-root .producers/plat-operations > oak-ridge-evidence.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: oak-ridge-v2-financial-parity
+          path: oak-ridge-evidence.json
+          if-no-files-found: error

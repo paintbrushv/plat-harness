@@ -3,8 +3,8 @@
 `plat_harness.synthetic_read_http` is a versioned, loopback-only HTTP/JSON
 surface for **two fixed public synthetic resources**. It is a protocol client
 test of the Wave 4 connector seam. No ChatGPT, Claude, Grok, or Muse host has
-been tested. It reads no deal folders or databases, calls no engines, and
-creates no business artifacts.
+been tested. It loads a packaged public fixture, reads no deal folders or
+databases, calls no engines, and creates no business artifacts.
 
 | GET path | Existing contract returned | Scope |
 |---|---|---|
@@ -14,10 +14,27 @@ creates no business artifacts.
 The deal is an invented fixture, not an engine output or a bid. The reasonability
 result is the harness **numeric band check**, not an LLM review of current public
 market evidence. The Oak Ridge values come from `plat-operations` commit
-`171eb9622f53fe9d6b9703191d5a6832064100ed`,
-`boxscore/tests/oak_ridge_demo.rs`: actual NOI 339150, budget NOI 353200,
-variance -14050, occupied 153, vacant 15, down 4. It supplies no occupancy
-denominator, so this endpoint supplies no occupancy rate for Oak Ridge.
+`d87ead5f8f4925ff828fede19b6f2d436fd07474`,
+`boxscore/tests/oak_ridge_demo.rs`: actual revenue 192950 less positive expense
+costs 146200 gives actual NOI **46750**; budget revenue 220900 less costs
+132300 gives budget NOI **88600**; variance is **-41850**. Occupied 153,
+vacant 15, down 4. It supplies no occupancy denominator, so this endpoint
+supplies no occupancy rate for Oak Ridge.
+
+The packaged `fixtures/oak_ridge_2026_05.v2.json` records the six source CSV
+SHA-256 hashes, producer commit, Cargo lock hash, sign convention, and
+`fixture_revision: 2`. The HTTP schema remains `contract_version: 1`; existing
+field names/types remain available. Revision 2 supersedes the earlier demo's
+inflated NOI caused by negative expense costs. Previously issued reports are
+historical records and must not be overwritten with the corrected amounts.
+
+The [v0.1 baseline](../release/v0.1-baseline.json) pins this fixture. The
+`v0.1 financial producer parity` workflow builds the pinned Rust producer,
+imports all six CSV inputs into a fresh temporary database, compares its
+result with this installed HTTP resource, and verifies a repeated analysis
+preserves the first report's bytes. The producer's own legacy-sign refusal
+test also runs. This proves the fixed synthetic bridge, not exact-cent
+accounting across every Boxscore path or acceptance of original vendor files.
 
 Start a local server from an installed harness package:
 
