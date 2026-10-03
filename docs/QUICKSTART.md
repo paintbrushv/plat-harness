@@ -18,7 +18,7 @@ a parse is not execution authority.
 
 ```bash
 python -m venv .venv && . .venv/bin/activate
-pip install plat_harness-0.1.0-py3-none-any.whl   # or: pip install .
+pip install plat_harness-0.1.1-py3-none-any.whl   # or: pip install .
 plat-underwrite --help
 plat-ops --help
 ```

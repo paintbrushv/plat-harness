@@ -18,7 +18,7 @@ From a built wheel (release artifact) or the repository:
 ```bash
 python -m venv .venv
 . .venv/bin/activate
-pip install plat_harness-0.1.0-py3-none-any.whl   # or: pip install .
+pip install plat_harness-0.1.1-py3-none-any.whl   # or: pip install .
 plat-harness --help
 plat-underwrite --help
 ```
