@@ -1,12 +1,12 @@
 """Read-only ops CLI: ``plat-ops`` (Task 6.4). See docs/REPORTING.md.
 
-A thin, local, read-only client over the Task 3.5 ``ops-review/1.0.0``
+A thin, local, read-only client over the Task 3.5 ``ops-review/2.0.0``
 seam: exactly one property and one period per review — never a cross-
 property or cross-period aggregate. The module performs **no financial
 math**, no writes to the source database, and never implements a variance
 formula of its own: variance is delegated entirely to a host-approved
-oracle bound over the pinned ops owner ``boxscore::variance``
-(``compute_account_variances`` + ``compute_noi_bridge``), supplied
+oracle bound over the pinned ops owner ``boxscore::exact::variance``
+(``compute``), supplied
 explicitly via ``--variance-module``; without one the review is an honest
 blocked review (``VARIANCE_NOT_IMPLEMENTED``), never a fabricated
 variance.
@@ -43,7 +43,7 @@ from plat_harness.adapters import ops_review
 from plat_harness.errors import HarnessError
 
 VERSION = 'cli-ops/1.0.0'
-ORACLE_OWNER = 'boxscore::variance'
+ORACLE_OWNER = 'boxscore::exact::variance'
 MAX_MODULE_TOKEN = 128
 
 EXIT_CODES = {'complete': 0, 'needs_review_or_data': 2,
@@ -85,9 +85,9 @@ def _load_oracle(module_token) -> 'Callable | None':
     """Bind a host-approved variance oracle module, or return None.
 
     The CLI never implements variance arithmetic; an explicit
-    ``--variance-module`` names a module exposing the two pinned
-    ``boxscore::variance`` functions. Loading is a plain import under a
-    strict token; a module missing either function refuses.
+    ``--variance-module`` names a module exposing the pinned
+    ``boxscore::exact::variance`` function. Loading is a plain import under a
+    strict token; a module missing that function refuses.
     """
     if module_token in (None, ''):
         return None
@@ -104,12 +104,7 @@ def _load_oracle(module_token) -> 'Callable | None':
                 'functions.', missing=missing)
 
     def _oracle(actuals, budgets, _module=module):
-        return {
-            'by_account': list(_module.compute_account_variances(
-                actuals, budgets)),
-            'noi_bridge': dict(_module.compute_noi_bridge(
-                actuals, budgets)),
-        }
+        return _module.compute(actuals, budgets)
 
     return _oracle
 
@@ -218,7 +213,7 @@ def _parser() -> argparse.ArgumentParser:
                         help='Fresh output directory for deliverables.')
     review.add_argument('--variance-module', default=None,
                         help='Host-approved module exposing the pinned '
-                             'boxscore::variance oracle functions.')
+                             'boxscore::exact::variance oracle functions.')
     review.add_argument('--no-variance', action='store_true',
                         help='Explicitly skip the oracle; the review '
                              'honestly blocks variance instead.')

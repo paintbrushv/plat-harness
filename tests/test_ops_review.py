@@ -3,7 +3,7 @@
 Self-contained public tests: synthetic SQLite ops fixtures only — no real
 deal bytes, no resident rows, no models, no network, no writes to the source.
 The variance oracle in this file is a labeled synthetic stand-in representing
-the deterministic ops owner (``boxscore::variance`` pure functions); the
+the deterministic ops owner (``boxscore::exact::variance`` pure functions); the
 module under test performs no variance arithmetic of its own. All data is
 synthetic; canary strings stand in for resident details and must never
 surface in results, refusals or exception chains.
@@ -157,7 +157,7 @@ def build_db(tmp_path, name='ops.db', seed=seed_clean):
 # ---------------------------------- labeled synthetic variance-oracle stand-in
 
 def stub_oracle(actuals, budgets):
-    """Stand-in for the ops owner's pure variance functions (boxscore::variance).
+    """Stand-in for the ops owner's pure variance functions (boxscore::exact::variance).
 
     Mirrors ``compute_account_variances`` and ``compute_noi_bridge`` semantics:
     per-(account,name,category) sums, variance = actual - budget, revenue /
@@ -264,9 +264,9 @@ def test_seam_exists():
 
 def test_contract_metadata_is_closed_and_versioned():
     module = api()
-    assert module.CONTRACT_VERSION == 'ops-review/1.0.0'
-    assert module.ORACLE_OWNER == 'boxscore::variance'
-    assert tuple(module.ORACLE_FUNCTIONS) == ('compute_account_variances', 'compute_noi_bridge')
+    assert module.CONTRACT_VERSION == 'ops-review/2.0.0'
+    assert module.ORACLE_OWNER == 'boxscore::exact::variance'
+    assert tuple(module.ORACLE_FUNCTIONS) == ('compute',)
     assert module.STALE_AFTER_DAYS == 45
     assert module.OPS_CURRENCIES == frozenset({'USD'})
     assert module.SEVERITIES == frozenset({'blocker', 'material', 'flag'})
@@ -315,7 +315,7 @@ def test_clean_review_reports_variance_and_occupancy(tmp_path):
     assert variance['covered_accounts'] == ['4000', '6100']
     assert variance['excluded_accounts'] == {'missing_budget': [], 'missing_actual': []}
     assert variance['materiality'] == {'variance_abs': '500.00', 'currency': 'USD'}
-    assert variance['oracle_owner'] == 'boxscore::variance'
+    assert variance['oracle_owner'] == 'boxscore::exact::variance'
     assert [row['account_code'] for row in variance['by_account']] == ['4000', '6100']
     first = variance['by_account'][0]
     assert set(first) == set(module_keys_by_account())
@@ -884,9 +884,9 @@ def test_absent_oracle_blocks_variance_without_fabricating(tmp_path):
     assert result['variance']['input_sha256'] == {'actuals': None, 'budgets': None}
     blocked = [record for record in result['exceptions']
                if record['code'] == 'VARIANCE_NOT_IMPLEMENTED']
-    assert blocked[0]['details']['oracle_owner'] == 'boxscore::variance'
+    assert blocked[0]['details']['oracle_owner'] == 'boxscore::exact::variance'
     assert blocked[0]['details']['oracle_functions'] == [
-        'compute_account_variances', 'compute_noi_bridge']
+        'compute']
     assert result['occupancy']['current']['occupied'] == 8  # still useful read-only
 
 
