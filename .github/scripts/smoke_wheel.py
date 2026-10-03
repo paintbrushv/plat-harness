@@ -30,6 +30,7 @@ _STRIPPED_PREFIXES = ("PLAT_HARNESS", "PYTHON", "VIRTUAL_ENV")
 
 def run(cmd: list[str], **kw) -> None:
     print("+", " ".join(cmd))
+    kw.setdefault("cwd", tempfile.gettempdir())
     subprocess.run(cmd, check=True, **kw)
 
 
@@ -55,9 +56,10 @@ def main() -> int:
         # ancestors by design (fail-closed mode gates); keep the venv private.
         venv_dir = Path(tmp) / "venv"
         venv_dir.parent.chmod(0o700)
-        venv.create(venv_dir, with_pip=True)
-        py = str(venv_dir / "bin" / "python")
-        bin_dir = venv_dir / "bin"
+        venv.create(venv_dir, with_pip=True, symlinks=sys.platform != "win32")
+        bin_dir = venv_dir / ("Scripts" if sys.platform == "win32" else "bin")
+        py = str(bin_dir / ("python.exe" if sys.platform == "win32" else "python"))
+        bin_dir = venv_dir / ("Scripts" if sys.platform == "win32" else "bin")
 
         run([py, "-m", "pip", "install", "--quiet", "--upgrade", "pip"],
             env=clean_env())
