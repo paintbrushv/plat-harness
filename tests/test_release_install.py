@@ -37,7 +37,7 @@ else:
 REPO_ROOT = Path(__file__).resolve().parents[1]
 HARNESS_SRC = REPO_ROOT / "harness" / "src"
 PYPROJECT = REPO_ROOT / "pyproject.toml"
-VERSION = "0.1.0"
+VERSION = tomllib.loads(PYPROJECT.read_text(encoding="utf-8"))["project"]["version"]
 
 # GPU/ML training stacks, model runtimes and cloud/provider SDKs that a core
 # install must never require.
