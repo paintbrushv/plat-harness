@@ -1,5 +1,22 @@
 # PLAT V3 acceptance gates — 2026-09-28
 
+## Current build: v0.1
+
+The current starting source pins and remaining gates are tracked in the
+[v0.1 baseline](../release/v0.1-baseline.json) and
+[build status](plat-v0.1-build-status.md). The September 28 observations below
+remain historical evidence; they do not approve a v0.1 release.
+
+**Oak Ridge correction:** the old negative-expense sample inflated NOI. The
+current revision 2 fixture pins `plat-operations` at
+`d87ead5f8f4925ff828fede19b6f2d436fd07474`: actual NOI **46,750**, budget
+NOI **88,600**, and variance **-41,850**. The earlier source pin and figures
+below are superseded as financial acceptance expectations, while issued
+historical reports remain unchanged. See the
+[fixture and live producer check](synthetic-read-http.md).
+
+## Historical September 28 evidence
+
 This is the public, synthetic evidence ledger for mandate Sections 13, 26,
 and 27. `BLOCKED` means a required behavior has no executable product path
 yet. A related unit test is listed as partial evidence only when it exercises

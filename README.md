@@ -3,6 +3,10 @@
 Agent-agnostic control plane for multifamily underwriting and asset operations.
 **The model is rented. Certified numbers come from tools.**
 
+v0.1 implementation is in progress. See the [build status](docs/plat-v0.1-build-status.md)
+and [source baseline](release/v0.1-baseline.json) for current pins, checks, and
+remaining release gates.
+
 ```bash
 git clone <this-repo> plat-harness && cd plat-harness
 python3 -m venv .venv && source .venv/bin/activate

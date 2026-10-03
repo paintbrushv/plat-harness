@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from decimal import Decimal
 from http.client import HTTPConnection
 from threading import Thread
 
@@ -63,12 +64,26 @@ def test_oak_ridge_pinned_sample_via_http_client(client) -> None:
     status, body, _ = client(OAK_RIDGE_PATH, "ops-secret")
     assert status == 200
     assert body["data_class"] == "synthetic"
-    assert body["actual_noi"] == "339150"
-    assert body["budget_noi"] == "353200"
-    assert body["noi_variance"] == "-14050"
+    assert body["fixture_revision"] == 2
+    assert body["expense_convention"] == "positive_costs"
+    assert body["currency"] == "USD"
+    # Independently specified economic bridge, not values copied from the
+    # packaged fixture under test. Live producer parity is a separate CI gate.
+    assert body["actual_revenue"] == "192950"
+    assert body["actual_expenses"] == "146200"
+    assert body["actual_noi"] == "46750"
+    assert body["budget_revenue"] == "220900"
+    assert body["budget_expenses"] == "132300"
+    assert body["budget_noi"] == "88600"
+    assert body["noi_variance"] == "-41850"
+    for side in ("actual", "budget"):
+        assert Decimal(body[f"{side}_revenue"]) - Decimal(body[f"{side}_expenses"]) == Decimal(body[f"{side}_noi"])
+    assert Decimal(body["actual_noi"]) - Decimal(body["budget_noi"]) == Decimal(body["noi_variance"])
     assert (body["occupied_units"], body["vacant_units"], body["down_units"]) == (153, 15, 4)
     assert "denominator" not in body
-    assert body["source"]["commit"] == "171eb9622f53fe9d6b9703191d5a6832064100ed"
+    assert body["source"]["commit"] == "d87ead5f8f4925ff828fede19b6f2d436fd07474"
+    assert body["supersedes"]["fixture_revision"] == 1
+    assert len(body["source"]["input_sha256"]) == 6
 
 
 def test_scope_auth_and_read_only_boundary(client) -> None:

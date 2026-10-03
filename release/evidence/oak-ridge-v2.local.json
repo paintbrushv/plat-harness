@@ -1,0 +1,35 @@
+{
+  "status": "passed",
+  "data_class": "synthetic",
+  "fixture_revision": 2,
+  "producer_commit": "d87ead5f8f4925ff828fede19b6f2d436fd07474",
+  "producer_binary_sha256": "c6dcc38ab605d113a9197fd0368b97f9f0d9760e8cdcff68c15a12f90cb58343",
+  "harness_version": "0.1.0",
+  "input_sha256": {
+    "boxscore/data/sample/delinquency_snapshots.csv": "8592efb0ce1aea1dc235ff59ae5fed968d7be2af5545cd177d5473577a7de6a1",
+    "boxscore/data/sample/gl_actuals.csv": "c88bdb6cadb23be91b3ff03cb142aeb302605e9d9ddd5e409ffa933deef98608",
+    "boxscore/data/sample/gl_budgets.csv": "2c438251e9e3e828b6da7725d0e91bd60564f87ea468146c33a1fc1ca0e8e131",
+    "boxscore/data/sample/leasing_snapshots.csv": "dfe02acd8bd2b782aa65e82c42b2ba026b0467ebd4538d4758e9a70b85740cae",
+    "boxscore/data/sample/properties.csv": "997e4bcb628f35269097d736c61aa22e0f901b25ef1c3b4fded43cd24f08c394",
+    "boxscore/data/sample/rent_roll_snapshots.csv": "68dda1fc010536a108c1c2d8a399008afb951c8495878514b96ce330eb1de24e"
+  },
+  "bridge": {
+    "actual_revenue": "192950",
+    "actual_expenses": "146200",
+    "actual_noi": "46750",
+    "budget_revenue": "220900",
+    "budget_expenses": "132300",
+    "budget_noi": "88600",
+    "noi_variance": "-41850"
+  },
+  "issued_report_preserved_on_repeat": true,
+  "limitation": "Synthetic integer-dollar sample parity; producer f64 money and real-source acceptance remain open.",
+  "observed_on": "2026-10-03",
+  "environment": {
+    "python": "Python 3.14.4",
+    "cargo": "cargo 1.96.0 (30a34c682 2026-05-25)",
+    "platform": "linux-x86_64"
+  },
+  "harness_wheel_sha256": "8bbf66e624fc7fe967cc7d2a31b3cb1064c9eaa276debf61c28a0b15ab75d65e",
+  "artifact_scope": "Local development build, not a published package or release approval."
+}
