@@ -11,7 +11,9 @@ import pytest
 
 
 ROOT = Path(__file__).resolve().parents[1]
-load_baseline = runpy.run_path(str(ROOT / "scripts/verify_release_baseline.py"))["load_baseline"]
+baseline_verifier = runpy.run_path(str(ROOT / "scripts/verify_release_baseline.py"))
+load_baseline = baseline_verifier["load_baseline"]
+verify_local_sources = baseline_verifier["verify_local_sources"]
 producer_verifier = runpy.run_path(str(ROOT / "scripts/verify_oak_ridge_producer.py"))
 check_result = producer_verifier["check_result"]
 verify_source = producer_verifier["verify_source"]
@@ -64,8 +66,8 @@ def test_baseline_cannot_claim_release_approval(baseline_copy):
         load_baseline(root)
 
 
-def test_producer_refuses_untracked_build_script_but_allows_build_output(tmp_path):
-    """Cargo auto-discovers build.rs even when all tracked files are clean."""
+@pytest.fixture
+def producer_checkout(tmp_path):
     repo = tmp_path / "producer"
     repo.mkdir()
 
@@ -94,11 +96,30 @@ def test_producer_refuses_untracked_build_script_but_allows_build_output(tmp_pat
     target = repo / "boxscore/target"
     target.mkdir()
     (target / "build-output").write_text("synthetic compiler output\n")
+    return repo, git, fixture
+
+
+def test_producer_refuses_untracked_build_script_but_allows_build_output(producer_checkout):
+    """Cargo auto-discovers build.rs even when all tracked files are clean."""
+    repo, _, fixture = producer_checkout
     verify_source(repo, fixture)
 
     (repo / "boxscore/build.rs").write_text('fn main() { println!("cargo:warning=untracked"); }\n')
     with pytest.raises(RuntimeError, match="including untracked files"):
         verify_source(repo, fixture)
+
+
+@pytest.mark.parametrize("change", ["unstaged", "staged", "untracked"])
+def test_baseline_refuses_dirty_checkout_at_pinned_commit(producer_checkout, change):
+    repo, git, fixture = producer_checkout
+    baseline = {"components": {repo.name: {"source_commit": fixture["source"]["commit"]}}}
+    verify_local_sources(baseline, repo.parent)
+    filename = "new-input.csv" if change == "untracked" else "sample.csv"
+    (repo / "boxscore" / filename).write_text("changed synthetic input\n")
+    if change == "staged":
+        git("add", "boxscore/sample.csv")
+    with pytest.raises(ValueError, match="baseline checkout is dirty: producer"):
+        verify_local_sources(baseline, repo.parent)
 
 
 def test_producer_parity_rejects_legacy_inflated_noi():

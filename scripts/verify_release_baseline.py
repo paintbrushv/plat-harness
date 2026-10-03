@@ -1,7 +1,7 @@
 """Validate development source pins and fixture integrity (no release approval).
 
 Run from any directory: python scripts/verify_release_baseline.py
-Optionally compare --workspace-root containing the six core checkouts.
+Optionally verify clean, pinned checkouts under --workspace-root.
 """
 
 from __future__ import annotations
@@ -57,6 +57,11 @@ def verify_local_sources(baseline: dict, workspace: Path) -> None:
             ["git", "-C", str(workspace / name), "rev-parse", "HEAD"], text=True,
         ).strip()
         require(actual == component["source_commit"], f"baseline checkout mismatch: {name}")
+        dirty = subprocess.check_output(
+            ["git", "-C", str(workspace / name), "status", "--porcelain", "--untracked-files=all"],
+            text=True,
+        ).strip()
+        require(not dirty, f"baseline checkout is dirty: {name} (including untracked files)")
 
 
 def main() -> None:
