@@ -660,11 +660,11 @@ def test_core_tests_pass_in_clean_install_venv(clean_venv, tmp_path):
         ignore=shutil.ignore_patterns("__pycache__", ".pytest_cache"),
     )
     # Core tests are repo-contract tests as well as package tests: they read
-    # pyproject.toml, docs/, policies/ and samples/ from the repo root, and the
-    # subprocess/AST suites bootstrap from harness/src explicitly — exactly
+    # pyproject.toml, docs/, policies/, samples/, scripts/ and release/ from
+    # the repo root, and subprocess/AST suites bootstrap from harness/src — exactly
     # what a dev checkout provides. Private payload (runs/deals, engine/
     # sources) stays out.
-    for item in ("pyproject.toml", "docs", "policies", "samples", "harness"):
+    for item in ("pyproject.toml", "docs", "policies", "samples", "harness", "scripts", "release"):
         src = REPO_ROOT / item
         if (src).is_dir():
             shutil.copytree(src, sandbox / item,
