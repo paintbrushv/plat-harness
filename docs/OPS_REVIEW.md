@@ -167,3 +167,9 @@ unwired catalog contract.
 - No live/vendor compatibility claims: coverage is the synthetic SQLite
   fixture contract above; real-feed compatibility remains blocked pending
   independent real-source evidence.
+Exact evidence uses `exact_gl` and `exact_snapshots` table names. A GL artifact
+locator carries revision ID, actual/budget kind, and input hash; its displayed
+row number is `exact_gl.ordinal + 1`. Every revision supplying current or prior
+occupancy is independently hash-verified, including fallback snapshots from an
+earlier period. Reading those revisions does not change the requested period's
+unit count.

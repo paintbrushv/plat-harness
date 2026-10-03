@@ -55,3 +55,37 @@ def test_modified_contents_and_incomplete_schema_refuse(tmp_path):
         con.execute('PRAGMA user_version=0')
     with pytest.raises(HarnessError, match='incomplete or unsupported'):
         ExactSqliteOpsBackend(path)
+
+
+def test_prior_snapshot_is_verified_and_citations_identify_exact_rows(tmp_path):
+    path = database(tmp_path)
+    snapshot = {'as_of_date': '2026-04-30', 'occupied_units': 19, 'vacant_units': 1,
+                'down_units': 0, 'market_rent_total': '123.45', 'in_place_rent_total': None,
+                'delinquent_amount': None, 'prepaid_amount': None, 'concessions_amount': None}
+    data = {'property': 'synthetic_ops', 'period': '2026-04', 'currency': 'USD',
+            'expense_convention': 'positive_costs', 'unit_count': 20,
+            'actuals': [], 'budgets': [], 'snapshot': snapshot}
+    digest = hashlib.sha256(json.dumps(data, separators=(',', ':')).encode()).hexdigest()
+    with sqlite3.connect(path) as con:
+        con.execute('INSERT INTO exact_revisions VALUES (?,?,?,?,?,?,?)',
+                    ('prior', 'synthetic_ops', '2026-04', 1, 20, '2026-04-30', digest))
+        con.execute('INSERT INTO exact_snapshots VALUES (?,?,?,?,?)',
+                    ('prior', '2026-04-30', 19, 1, 0))
+        con.execute('INSERT INTO exact_snapshot_money VALUES (?,?,?)',
+                    ('prior', 'market_rent_total', 12345))
+    backend = ExactSqliteOpsBackend(path)
+    backend.gl_rows('synthetic_ops', '2026-05')
+    assert backend.occupancy_snapshots('synthetic_ops', '2026-05-31')[0]['occupied'] == 19
+    assert backend.unit_count('synthetic_ops') == 10
+    result = review_period('synthetic_ops', '2026-05', db_path=path,
+                           materiality={'variance_abs': '500.00', 'currency': 'USD'})
+    assert result['occupancy']['current']['source'][0]['table'] == 'exact_snapshots'
+    missing = next(e for e in result['exceptions'] if e['code'] == 'MISSING_BUDGET')
+    assert missing['evidence'][0]['table'] == 'exact_gl'
+    assert ':revision:actual:' in missing['evidence'][0]['artifact']
+    assert missing['evidence'][0]['row'] == 1  # exact_gl.ordinal 0, display row 1
+    with sqlite3.connect(path) as con:
+        con.execute("UPDATE exact_snapshots SET occupied_units=18,vacant_units=2 WHERE revision_id='prior'")
+    with pytest.raises(HarnessError, match='canonical input hash'):
+        review_period('synthetic_ops', '2026-05', db_path=path,
+                      materiality={'variance_abs': '500.00', 'currency': 'USD'})

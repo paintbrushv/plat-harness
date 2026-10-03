@@ -398,6 +398,10 @@ class ExactSqliteOpsBackend(SqliteOpsBackend):
             return []
         revision, units, created, digest = revisions[0]
         self._units[property_key] = units
+        result, _ = self._verified_revision(property_key, period, revision, units, created, digest)
+        return result
+
+    def _verified_revision(self, property_key, period, revision, units, created, digest):
         result = []
         for kind, ordinal, code, name, category, cents in self._query(
                 'SELECT kind,ordinal,account_code,account_name,category,amount_cents '
@@ -408,7 +412,7 @@ class ExactSqliteOpsBackend(SqliteOpsBackend):
             amount = f'{"-" if cents < 0 else ""}{absolute // 100}.{absolute % 100:02}'
             result.append({'property': property_key, 'period': period, 'kind': kind,
                            'account_code': code, 'account_name': name, 'category': category,
-                           'amount': amount, 'source_file': f'exact:{revision}:{digest}',
+                           'amount': amount, 'source_file': f'exact:{revision}:{kind}:{digest}',
                            'source_row': ordinal + 1, 'created_at': created,
                            'id': f'{revision}:{kind}:{ordinal}'})
         # Reconstruct the canonical input for integrity verification only;
@@ -439,23 +443,31 @@ class ExactSqliteOpsBackend(SqliteOpsBackend):
         raw = json.dumps(canonical, ensure_ascii=False, separators=(',', ':')).encode('utf-8')
         if hashlib.sha256(raw).hexdigest() != digest:
             _fail('INVALID_CONTRACT', 'Exact revision no longer matches its canonical input hash.')
-        return result
+        return result, snapshot
 
     def unit_count(self, property_key):
         return self._units.get(property_key)
 
     def occupancy_snapshots(self, property_key, bound_date):
         rows = self._query(
-            'SELECT s.as_of_date,s.occupied_units,s.vacant_units,s.down_units,r.id,r.created_at '
+            'SELECT r.id,r.period,r.unit_count,r.created_at,r.input_sha256 '
             'FROM exact_snapshots s JOIN exact_revisions r ON r.id=s.revision_id '
             'WHERE r.property=? AND s.as_of_date<=? AND r.revision=('
             'SELECT max(x.revision) FROM exact_revisions x WHERE x.property=r.property '
             'AND x.period=r.period) ORDER BY s.as_of_date DESC LIMIT ?',
             (property_key, bound_date, MAX_SNAPSHOTS))
-        return [{'as_of_date': day, 'occupied': occupied, 'vacant': vacant, 'down': down,
-                 'source_file': f'exact:{revision}', 'source_row': 1,
-                 'created_at': created, 'id': revision}
-                for day, occupied, vacant, down, revision, created in rows]
+        snapshots = []
+        for revision, period, units, created, digest in rows:
+            _, snapshot = self._verified_revision(
+                property_key, period, revision, units, created, digest)
+            if snapshot is None:
+                _fail('INVALID_CONTRACT', 'Exact snapshot disappeared during review.')
+            snapshots.append({'as_of_date': snapshot['as_of_date'],
+                              'occupied': snapshot['occupied_units'],
+                              'vacant': snapshot['vacant_units'], 'down': snapshot['down_units'],
+                              'source_file': f'exact:{revision}:{digest}', 'source_row': 1,
+                              'created_at': created, 'id': revision})
+        return snapshots
 
     def account_mappings(self, property_key):
         # Canonical import records supplied classifications; it does not grant
@@ -630,7 +642,7 @@ def _citation(source_file: str, source_row: int, table: str, period: str) -> dic
 
 
 def _citations_for(rows: list[dict], period: str) -> list[dict]:
-    return [_citation(r['source_file'], r['source_row'], GL_TABLES[r['kind']],
+    return [_citation(r['source_file'], r['source_row'], r.get('_source_table', GL_TABLES[r['kind']]),
                       period) for r in rows]
 
 
@@ -659,7 +671,7 @@ def _occupancy_payload(snapshot: dict, counts: Any) -> dict:
         'denominator': counts.denominator, 'rate': counts.as_dict()['rate'],
         'as_of': snapshot['as_of_date'].isoformat(),
         'source': [_citation(snapshot['source_file'], snapshot['source_row'],
-                             SNAPSHOT_TABLE, snapshot['as_of_date'].isoformat())],
+                             snapshot.get('_source_table', SNAPSHOT_TABLE), snapshot['as_of_date'].isoformat())],
     }
 
 
@@ -760,11 +772,17 @@ def review_period(asset_id, period, *, materiality, as_of_date=None,
 
     rows = _validate_gl_rows(backend_obj.gl_rows(property_key, period),
                              property_key, period)
+    if isinstance(backend_obj, ExactSqliteOpsBackend):
+        for row in rows:
+            row['_source_table'] = 'exact_gl'
     deduped, duplicates = _dedupe(rows)
     mappings = _validate_mappings(backend_obj.account_mappings(property_key),
                                   property_key)
     snapshots = _validate_snapshots(
         backend_obj.occupancy_snapshots(property_key, bound_text), bound)
+    if isinstance(backend_obj, ExactSqliteOpsBackend):
+        for snapshot in snapshots:
+            snapshot['_source_table'] = 'exact_snapshots'
     unit_count = backend_obj.unit_count(property_key)
     if unit_count is not None and (not isinstance(unit_count, int)
                                    or isinstance(unit_count, bool)):
@@ -819,7 +837,7 @@ def review_period(asset_id, period, *, materiality, as_of_date=None,
     else:
         counts = _counts_of(current)
         citation = _citation(current['source_file'], current['source_row'],
-                             SNAPSHOT_TABLE, current['as_of_date'].isoformat())
+                             current.get('_source_table', SNAPSHOT_TABLE), current['as_of_date'].isoformat())
         occupancy['current'] = _occupancy_payload(current, counts)
         feeds['snapshot_as_of'] = current['as_of_date'].isoformat()
         if review_day is None:
@@ -896,7 +914,7 @@ def review_period(asset_id, period, *, materiality, as_of_date=None,
                         'kept_amount': _money(kept['amount'], policy['currency'],
                                               period, [kept])},
             'evidence': [_citation(kept['source_file'], kept['source_row'],
-                                  GL_TABLES[kept['kind']], period)],
+                                  kept.get('_source_table', GL_TABLES[kept['kind']]), period)],
         })
     if duplicates:
         facts.append({'statement':

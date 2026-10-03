@@ -81,9 +81,14 @@ hash, and keeps account mapping approval unresolved. The CLI binds a single
 `compute(actuals, budgets)` owner function; `platworks.ops_oracle` provides it.
 See [the review contract](OPS_REVIEW.md).
 
-Local validation: 122 focused harness tests passed. The real Rust/Python
+Local validation: 123 focused harness tests passed. The real Rust/Python
 acceptance test in the umbrella imports CSV, issues a report, applies a one-cent
 correction, preserves the original body, and reviews the exact database.
 The full local harness run was killed with exit 137 after progressing past 64%;
 it is not recorded as a pass. Hosted full-suite validation is required.
 The separate starting baseline and its historical fixture evidence are preserved.
+
+Review follow-up: verify every occupancy revision and identify exact storage
+in citations, with prior-snapshot tamper and locator regressions. Initial hosted
+Linux Python 3.10 passed all 2,586 tests with one skip; final hosted validation
+must run again on the follow-up commit.
