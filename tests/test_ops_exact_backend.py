@@ -9,10 +9,11 @@ from plat_harness.adapters.ops_review import ExactSqliteOpsBackend, review_perio
 from plat_harness.errors import HarnessError
 
 
-def database(tmp_path):
+def database(tmp_path, negative=False):
     path = tmp_path / 'exact.sqlite'
     line = {'account_code': '4000', 'account_name': 'Rent',
-            'category': 'rental income', 'amount': '92233720368547758.07'}
+            'category': 'rental income',
+            'amount': '-92233720368547758.07' if negative else '92233720368547758.07'}
     data = {'property': 'synthetic_ops', 'period': '2026-05', 'currency': 'USD',
             'expense_convention': 'positive_costs', 'unit_count': 10,
             'actuals': [line], 'budgets': [], 'snapshot': None}
@@ -29,15 +30,17 @@ def database(tmp_path):
         con.execute('INSERT INTO exact_revisions VALUES (?,?,?,?,?,?,?)',
                     ('revision', 'synthetic_ops', '2026-05', 1, 10, '2026-05-31', digest))
         con.execute('INSERT INTO exact_gl VALUES (?,?,?,?,?,?,?)',
-                    ('revision', 'actual', 0, '4000', 'Rent', 'rental income', 9223372036854775807))
+                    ('revision', 'actual', 0, '4000', 'Rent', 'rental income',
+                     -9223372036854775807 if negative else 9223372036854775807))
     return path
 
 
-def test_integer_limit_never_round_trips_through_float(tmp_path):
-    path = database(tmp_path)
+@pytest.mark.parametrize("negative", [False, True])
+def test_integer_limit_never_round_trips_through_float(tmp_path, negative):
+    path = database(tmp_path, negative)
     backend = ExactSqliteOpsBackend(path)
     rows = backend.gl_rows('synthetic_ops', '2026-05')
-    assert rows[0]['amount'] == '92233720368547758.07'
+    assert rows[0]['amount'] == ('-92233720368547758.07' if negative else '92233720368547758.07')
     result = review_period('synthetic_ops', '2026-05', db_path=path,
                            materiality={'variance_abs': '500.00', 'currency': 'USD'})
     assert result['contract_version'] == 'ops-review/2.0.0'
@@ -82,6 +85,8 @@ def test_prior_snapshot_is_verified_and_citations_identify_exact_rows(tmp_path):
     assert result['occupancy']['current']['source'][0]['table'] == 'exact_snapshots'
     missing = next(e for e in result['exceptions'] if e['code'] == 'MISSING_BUDGET')
     assert missing['evidence'][0]['table'] == 'exact_gl'
+    mapping = next(e for e in result['exceptions'] if e['code'] == 'UNREVIEWED_ACCOUNT_MAPPING')
+    assert mapping['evidence'] and all(c['table'] == 'exact_gl' for c in mapping['evidence'])
     assert ':revision:actual:' in missing['evidence'][0]['artifact']
     assert missing['evidence'][0]['row'] == 1  # exact_gl.ordinal 0, display row 1
     # A concurrent new revision must not replace the snapshot for the GL
@@ -102,3 +107,19 @@ def test_prior_snapshot_is_verified_and_citations_identify_exact_rows(tmp_path):
     with pytest.raises(HarnessError, match='canonical input hash'):
         review_period('synthetic_ops', '2026-05', db_path=path,
                       materiality={'variance_abs': '500.00', 'currency': 'USD'})
+
+    # Deleting the candidate snapshot must not make a corrupt revision vanish
+    # from integrity verification and silently change occupancy fallback.
+    with sqlite3.connect(path) as con:
+        con.execute("DELETE FROM exact_snapshots WHERE revision_id='prior'")
+    with pytest.raises(HarnessError, match='canonical input hash'):
+        review_period('synthetic_ops', '2026-05', db_path=path,
+                      materiality={'variance_abs': '500.00', 'currency': 'USD'})
+
+
+def test_min_i64_is_outside_the_producers_reversal_safe_money_contract(tmp_path):
+    path = database(tmp_path)
+    with sqlite3.connect(path) as con:
+        con.execute('UPDATE exact_gl SET amount_cents=-9223372036854775808')
+    with pytest.raises(HarnessError, match='checked integer cents'):
+        ExactSqliteOpsBackend(path).gl_rows('synthetic_ops', '2026-05')

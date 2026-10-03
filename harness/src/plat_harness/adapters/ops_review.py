@@ -454,19 +454,22 @@ class ExactSqliteOpsBackend(SqliteOpsBackend):
         selected_period, selected_revision = self._selected.get(property_key, ('', ''))
         rows = self._query(
             'SELECT r.id,r.period,r.unit_count,r.created_at,r.input_sha256 '
-            'FROM exact_snapshots s JOIN exact_revisions r ON r.id=s.revision_id '
-            'WHERE r.property=? AND s.as_of_date<=? AND '
+            'FROM exact_revisions r WHERE r.property=? AND r.period<=? AND '
             '((r.period=? AND r.id=?) OR (r.period<>? AND r.revision=('
             'SELECT max(x.revision) FROM exact_revisions x WHERE x.property=r.property '
-            'AND x.period=r.period))) ORDER BY s.as_of_date DESC LIMIT ?',
-            (property_key, bound_date, selected_period, selected_revision,
-             selected_period, MAX_SNAPSHOTS))
+            'AND x.period=r.period))) ORDER BY r.period DESC LIMIT ?',
+            (property_key, bound_date[:7], selected_period, selected_revision,
+             selected_period, MAX_SNAPSHOTS + 1))
+        if len(rows) > MAX_SNAPSHOTS:
+            _fail('INPUT_LIMIT_EXCEEDED', 'Exact revision count exceeds the snapshot review bound.')
         snapshots = []
         for revision, period, units, created, digest in rows:
             _, snapshot = self._verified_revision(
                 property_key, period, revision, units, created, digest)
-            if snapshot is None:
-                _fail('INVALID_CONTRACT', 'Exact snapshot disappeared during review.')
+            # Verify before filtering: a missing/deleted or moved snapshot
+            # must not evade its revision's canonical hash check.
+            if snapshot is None or snapshot['as_of_date'] > bound_date:
+                continue
             snapshots.append({'as_of_date': snapshot['as_of_date'],
                               'occupied': snapshot['occupied_units'],
                               'vacant': snapshot['vacant_units'], 'down': snapshot['down_units'],
@@ -946,7 +949,8 @@ def review_period(asset_id, period, *, materiality, as_of_date=None,
             exceptions.append(_exception(
                 'UNREVIEWED_ACCOUNT_MAPPING', 'material',
                 details={'account_code': code, 'reason': 'absent', 'status': None},
-                evidence=evidence + [citation]))
+                evidence=evidence if isinstance(backend_obj, ExactSqliteOpsBackend)
+                else evidence + [citation]))
         elif len(states) > 1:
             exceptions.append(_exception(
                 'UNREVIEWED_ACCOUNT_MAPPING', 'material',
