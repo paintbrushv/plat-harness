@@ -52,8 +52,8 @@ plat-ops review --asset <opaque-id> --as-of 2026-04 \
 - **Missing backend is a blocker.** A nonexistent `--db` refuses
   `NOT_FOUND` — the CLI never fabricates a review from nothing.
 - **No parallel variance formula.** Variance comes only from an oracle
-  bound over the pinned ops owner (`boxscore::variance` —
-  `compute_account_variances` + `compute_noi_bridge`), supplied explicitly
+  bound over the pinned ops owner (`boxscore::exact::variance` —
+  `compute`), supplied explicitly
   via `--variance-module`. With no oracle (or `--no-variance`) the review
   completes blocked with `VARIANCE_NOT_IMPLEMENTED` and renders
   `noi_variance` as `null` — never zero, never computed locally.

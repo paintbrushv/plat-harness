@@ -88,7 +88,7 @@ plat-ops review --asset <id> --as-of <YYYY-MM> --db <ops.db> \
   `scope` in the record echoes `properties_reviewed: 1, periods_reviewed: 1`.
 - **Variance only through a bound oracle.** The harness performs no variance
   arithmetic. `--variance-module` binds a host-approved module exposing the
-  pinned `boxscore::variance` pure functions; with no oracle, pass
+  pinned `boxscore::exact::variance` pure functions; with no oracle, pass
   `--no-variance` and the review honestly blocks variance (`--no-variance`
   is explicit, never a silent skip). Missing budget is a blocker while an
   explicit zero is a real comparison.

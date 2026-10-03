@@ -49,9 +49,6 @@ release packaging must assign an unused version.
 
 ## Remaining work
 
-- Authoritative public backsolve API and explicit benchmark/policy inputs.
-- Checked integer-cent operating workflow, Rust JSON protocol, and reviewed
-  copy migration of legacy databases. Current Boxscore still uses `f64` money.
 - Compatible MCP major, complete installed umbrella dependencies, packaged
   Rust binaries, and tested release/version gates.
 - Local acquisition and operations review journeys for supported real files;
@@ -64,3 +61,29 @@ release packaging must assign an unused version.
 The older [V3 ledger](plat-v3-acceptance-gates.md) and
 [acceptance scorecard](ACCEPTANCE.md) retain their missing-evidence gates.
 Synthetic arithmetic checks cannot close those gates.
+
+## Financial core candidate — 2026-10-03
+
+B2 adds the public `plat.backsolve/1` API in underwriting, used by its CLI,
+agent, and both MCP surfaces. Versioned policy and benchmark rate/date/source
+are explicit. The wrapper's duplicate solver is removed. Success, feasible
+ceiling, infeasibility, and iteration exhaustion have distinct statuses.
+
+B3 adds `boxscore-exact` with checked cents, INTEGER persistence, canonical
+CSV/JSON imports, snapshots, immutable reports and correction bridges. Its
+`plat.ops/1` protocol replaces the umbrella's Python financial port. Reviewed
+migration creates a new database and preserves the source and historical bodies.
+Legacy floating-point features remain excluded from the exact workflow.
+
+This harness adds `ops-review/2.0.0` and an exact database reader. It selects the
+current revision, formats cents without floats, verifies the canonical input
+hash, and keeps account mapping approval unresolved. The CLI binds a single
+`compute(actuals, budgets)` owner function; `platworks.ops_oracle` provides it.
+See [the review contract](OPS_REVIEW.md).
+
+Local validation: 122 focused harness tests passed. The real Rust/Python
+acceptance test in the umbrella imports CSV, issues a report, applies a one-cent
+correction, preserves the original body, and reviews the exact database.
+The full local harness run was killed with exit 137 after progressing past 64%;
+it is not recorded as a pass. Hosted full-suite validation is required.
+The separate starting baseline and its historical fixture evidence are preserved.

@@ -2,7 +2,7 @@
 
 Self-contained public tests; synthetic SQLite ops fixtures only — no real
 deal bytes, no resident rows, no models, no network, no writes to the source
-database. The CLI is a thin client over the Task 3.5 ``ops-review/1.0.0``
+database. The CLI is a thin client over the Task 3.5 ``ops-review/2.0.0``
 seam: one property, one period, no cross-property aggregation, missing
 budget is a blocker (never zero), and a missing ops backend is a typed
 blocker, never a fabricated report. stdout is a single machine-readable
@@ -128,7 +128,7 @@ def build_db(tmp_path: Path) -> Path:
 
 
 ORACLE_SOURCE = '''
-"""Labeled synthetic stand-in for the ops owner (boxscore::variance).
+"""Labeled synthetic stand-in for the ops owner (boxscore::exact::variance).
 
 Mirrors compute_account_variances + compute_noi_bridge semantics: per-
 account sums, variance = actual - budget, revenue/expense classification.
@@ -186,6 +186,10 @@ def compute_noi_bridge(actuals, budgets):
         'noi_variance': _fmt((rev_a - exp_a) - (rev_b - exp_b)),
         'unmapped_actual': _fmt(unm_a), 'unmapped_budget': _fmt(unm_b),
     }
+
+def compute(actuals, budgets):
+    return {'by_account': compute_account_variances(actuals, budgets),
+            'noi_bridge': compute_noi_bridge(actuals, budgets)}
 '''
 
 

@@ -114,7 +114,7 @@ plat-ops review \
 One property, one period — cross-property aggregation is structurally
 impossible. `--no-variance` honestly blocks variance arithmetic instead of
 inventing a parallel formula; to compute variances, bind a host-approved
-`boxscore::variance` oracle module with `--variance-module`. Deliverables
+`boxscore::exact::variance` oracle module with `--variance-module`. Deliverables
 (`report.json`, `summary.md`, `metrics.csv`) render cited deterministic
 records verbatim; `publication_authorized` is always `false` — generating a
 report grants no publish permission.

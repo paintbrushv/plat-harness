@@ -1,4 +1,4 @@
-# Read-only operations review: `ops-review/1.0.0`
+# Read-only operations review: `ops-review/2.0.0`
 
 **Task 3.5.** A read-only, single-(property, period) operations review over the
 ops owner's SQLite backend. It returns actual-versus-budget variance (only
@@ -46,7 +46,7 @@ verify no merge occurred.
 
 The harness implements **no variance arithmetic** — that belongs to the
 deterministic ops owner. `ORACLE_OWNER` pins
-`boxscore::variance` (`compute_account_variances` + `compute_noi_bridge`,
+`boxscore::exact::variance` (`compute`,
 `ORACLE_FUNCTIONS`); a host binds an adapter over those pure functions and
 passes it as `variance_oracle(actuals, budgets)`. The oracle receives
 exactly `ORACLE_ROW_KEYS` rows (`account_code`, `account_name`, `category`,
@@ -60,14 +60,29 @@ number is reproducible.
 Without an oracle the review still returns occupancy and exceptions, with a
 `VARIANCE_NOT_IMPLEMENTED` blocker — never a fabricated variance.
 
-Ops money is stored as SQLite REAL (f64 — flagged in the metric glossary,
-never mixed with the Decimal underwriting engine). It is converted once at
-the read boundary via shortest round-trip repr into a decimal string;
-nonfinite or ambiguous text amounts refuse. Every money value in the result
-is a record `{amount, currency, unit: 'usd', period, source,
-source_truncated}` carrying currency, unit, period and source locators
-(citations are capped at 50 rows per record; `input_sha256` covers the full
-row set). Only USD is supported today (`OPS_CURRENCIES`).
+`ops-review/2.0.0` reads both the legacy snapshot schema and the new exact
+schema (`application_id=0x504c4154`, version 1). Exact GL rows come from the
+latest revision of the requested property and period. INTEGER cents are
+formatted directly as decimal strings; they never pass through float. Imported
+categories do not imply approved mappings, so exact imports retain
+`UNREVIEWED_ACCOUNT_MAPPING` exceptions until the human review gate is built.
+
+Legacy REAL snapshots remain a compatibility read path. Their values cross once
+through shortest round-trip decimal text, and the exact producer refuses
+subcent input. Use the reviewed copy migration in
+[the operating producer](https://github.com/paintbrushv/plat-operations/blob/main/docs/EXACT_CENTS.md)
+for the released exact workflow. The old database and issued bodies are retained.
+
+Bind `platworks.ops_oracle.compute` through `--variance-module platworks.ops_oracle`
+for the CLI, or `variance_oracle=platworks.ops_oracle.variance_oracle` in Python.
+The host must install and configure `boxscore-exact`. The adapter propagates typed
+producer failures; it cannot approve signs, repair precision, or fabricate a
+fallback. The umbrella records the binary and protocol input hashes in its
+provenance. This changes the owner from legacy `boxscore::variance` to
+`boxscore::exact::variance`; historical version-1 evidence is unchanged.
+
+Every money result remains a record `{amount, currency, unit: 'usd', period,
+source, source_truncated}`. Only USD is supported (`OPS_CURRENCIES`).
 
 ## Missing is not zero
 
