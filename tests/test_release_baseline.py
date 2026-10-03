@@ -5,13 +5,16 @@ from hashlib import sha256
 import json
 from pathlib import Path
 import runpy
+import subprocess
 
 import pytest
 
 
 ROOT = Path(__file__).resolve().parents[1]
 load_baseline = runpy.run_path(str(ROOT / "scripts/verify_release_baseline.py"))["load_baseline"]
-check_result = runpy.run_path(str(ROOT / "scripts/verify_oak_ridge_producer.py"))["check_result"]
+producer_verifier = runpy.run_path(str(ROOT / "scripts/verify_oak_ridge_producer.py"))
+check_result = producer_verifier["check_result"]
+verify_source = producer_verifier["verify_source"]
 
 
 @pytest.fixture
@@ -59,6 +62,43 @@ def test_baseline_cannot_claim_release_approval(baseline_copy):
     path.write_text(json.dumps(baseline))
     with pytest.raises(ValueError, match="cannot approve a release"):
         load_baseline(root)
+
+
+def test_producer_refuses_untracked_build_script_but_allows_build_output(tmp_path):
+    """Cargo auto-discovers build.rs even when all tracked files are clean."""
+    repo = tmp_path / "producer"
+    repo.mkdir()
+
+    def git(*args):
+        return subprocess.check_output([
+            "git", "-C", str(repo), "-c", "user.name=Synthetic Test",
+            "-c", "user.email=synthetic@example.invalid",
+            "-c", "commit.gpgsign=false", "-c", f"core.hooksPath={tmp_path / 'no-hooks'}",
+            *args,
+        ], text=True).strip()
+
+    git("init", "--quiet")
+    lock = repo / "boxscore/Cargo.lock"
+    lock.parent.mkdir()
+    lock.write_text("# synthetic test lock\n")
+    sample = repo / "boxscore/sample.csv"
+    sample.write_text("synthetic input\n")
+    (repo / ".gitignore").write_text("target/\n")
+    git("add", ".gitignore", "boxscore/Cargo.lock", "boxscore/sample.csv")
+    git("commit", "--quiet", "-m", "Synthetic producer fixture")
+    fixture = {"source": {
+        "commit": git("rev-parse", "HEAD"),
+        "input_sha256": {"boxscore/sample.csv": sha256(sample.read_bytes()).hexdigest()},
+        "cargo_lock_sha256": sha256(lock.read_bytes()).hexdigest(),
+    }}
+    target = repo / "boxscore/target"
+    target.mkdir()
+    (target / "build-output").write_text("synthetic compiler output\n")
+    verify_source(repo, fixture)
+
+    (repo / "boxscore/build.rs").write_text('fn main() { println!("cargo:warning=untracked"); }\n')
+    with pytest.raises(RuntimeError, match="including untracked files"):
+        verify_source(repo, fixture)
 
 
 def test_producer_parity_rejects_legacy_inflated_noi():

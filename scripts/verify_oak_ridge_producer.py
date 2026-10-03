@@ -48,9 +48,9 @@ def verify_source(root: Path, fixture: dict) -> None:
     actual = subprocess.check_output(["git", "-C", str(root), "rev-parse", "HEAD"], text=True).strip()
     require(actual == source["commit"], "producer commit differs from the fixture pin")
     dirty = subprocess.check_output(
-        ["git", "-C", str(root), "status", "--porcelain", "--untracked-files=no"], text=True,
+        ["git", "-C", str(root), "status", "--porcelain", "--untracked-files=all"], text=True,
     ).strip()
-    require(not dirty, "producer tracked files must be clean")
+    require(not dirty, "producer source must be clean, including untracked files")
     for relative, expected in source["input_sha256"].items():
         require(sha256((root / relative).read_bytes()).hexdigest() == expected, f"input hash mismatch: {relative}")
     require(sha256((root / "boxscore/Cargo.lock").read_bytes()).hexdigest() == source["cargo_lock_sha256"], "Cargo.lock hash mismatch")
