@@ -210,7 +210,7 @@ def main() -> None:
         ("plat-costmodel", plat_costmodel),
         ("plat-multifamily-underwriting", engine),
     ):
-        expected_version = "0.1.1" if package == "plat-multifamily-underwriting" else "0.1.0"
+        expected_version = "0.1.1" if package in {"plat-multifamily-underwriting", "plat-harness"} else "0.1.0"
         _check(importlib.metadata.version(package) == expected_version, f"unexpected {package} version")
         _check("site-packages" in Path(module.__file__).resolve().parts, f"{package} came from a source tree")
 
